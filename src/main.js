@@ -10,6 +10,7 @@ import { initAgent, updateModelBadge } from './modules/agent.js';
 import { initSettings } from './modules/settings.js';
 import { initLog, addLogEntry } from './modules/log.js';
 import { initTimeMachine } from './modules/time_machine.js';
+import { showCustomAlert } from './modules/ui.js';
 import { state, uiState, saveUIState } from './modules/state.js';
 
 // ===== BOOT =====
@@ -177,19 +178,19 @@ function initStormTrackPanel() {
   document.getElementById('plot-track-btn').addEventListener('click', plotTrack);
 }
 
-function plotTrack() {
+async function plotTrack() {
   const lat = parseFloat(document.getElementById('storm-lat').value);
   const lon = parseFloat(document.getElementById('storm-lon').value);
   const dir = parseFloat(document.getElementById('storm-dir').value);
   const speed = parseFloat(document.getElementById('storm-speed').value);
 
   if (isNaN(lat) || isNaN(lon) || isNaN(dir) || isNaN(speed)) {
-    alert('Please fill in all storm track fields.');
+    showCustomAlert('Please fill in all storm track fields.', { title: 'Missing Data' });
     return;
   }
 
   if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-    alert('Invalid lat/lon values.');
+    showCustomAlert('Invalid lat/lon values.', { title: 'Invalid Data' });
     return;
   }
 
@@ -239,7 +240,7 @@ function initBailoutButton() {
       window.open(url, '_blank');
       addLogEntry('alert', `🚨 BAIL OUT initiated — routing away from storm motion.`);
     } else {
-      alert('Set your location first (GPS or Settings) to use Bail Out routing.');
+      showCustomAlert('Set your location first (GPS or Settings) to use Bail Out routing.', { title: 'Location Required' });
     }
   });
 }

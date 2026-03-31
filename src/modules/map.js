@@ -208,12 +208,19 @@ async function updateLocationDisplay(lat, lon, suffix = '') {
 
 export function centerOnUser(forceGPS = false) {
   if (forceGPS) {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+      addLogEntry('system', 'Geolocation is not supported by this browser.');
+      return;
+    }
     
     // Immediate visual feedback
     const locText = document.getElementById('location-text');
     if (locText) locText.textContent = 'Locating...';
     
+    // Reset state to force the "Locating..." state even if logic fails
+    state.userLat = null;
+    state.userLon = null;
+
     navigator.geolocation.getCurrentPosition((pos) => {
       const { latitude: lat, longitude: lon } = pos.coords;
       setLocation(lat, lon, false); // Not manual
@@ -222,9 +229,19 @@ export function centerOnUser(forceGPS = false) {
       map.setView([lat, lon], Math.max(map.getZoom(), 8), { animate: true });
       addLogEntry('system', 'GPS Location Lock Re-established.');
     }, (err) => {
+      console.warn('GPS Reset Failed:', err);
+      // Fallback: use last known state or notify user
       addLogEntry('system', `GPS Reset Failed: ${err.message}`);
-      updateLocationDisplay(state.userLat, state.userLon, uiState.position.userLat ? 'manual' : '');
-    }, { enableHighAccuracy: true });
+      if (uiState.position.userLat) {
+        updateLocationDisplay(uiState.position.userLat, uiState.position.userLon, 'manual');
+      } else {
+        if (locText) locText.textContent = err.code === 1 ? 'GPS Denied' : 'GPS Error';
+      }
+    }, { 
+      enableHighAccuracy: true, 
+      timeout: 10000, 
+      maximumAge: 0 // Force fresh reading
+    });
   } else if (state.userLat && state.userLon) {
     map.setView([state.userLat, state.userLon], map.getZoom(), { animate: true });
   }
@@ -738,10 +755,13 @@ export function toggleLocationPicker(active) {
   const mapContainer = document.getElementById('map');
   
   if (btn) btn.classList.toggle('active', active);
-  if (mapContainer) mapContainer.classList.toggle('cursor-crosshair', active);
+  if (mapContainer) {
+    mapContainer.classList.toggle('cursor-crosshair', active);
+    mapContainer.classList.toggle('picking-active', active);
+  }
   
   if (active) {
-    addLogEntry('system', 'Location picker active: Click map to set position.');
+    addLogEntry('system', 'Location picker active: Overlay popups disabled. Click map to set position.');
   }
 }
 
@@ -752,10 +772,16 @@ export function toggleStormPicker(active) {
   const mapContainer = document.getElementById('map');
   
   if (btn) btn.classList.toggle('active', active);
-  if (mapContainer) mapContainer.classList.toggle('cursor-crosshair', active);
+  if (mapContainer) {
+    mapContainer.classList.toggle('cursor-crosshair', active);
+    mapContainer.classList.toggle('picking-active', active);
+  }
+
+  // Also ensure set-pos-btn is NOT active
+  document.getElementById('set-pos-btn')?.classList.remove('active');
 
   if (active) {
-    addLogEntry('system', 'Storm picker active: Click map to set center.');
+    addLogEntry('system', 'Storm picker active: Overlay popups disabled. Click map to set center.');
   }
 }
 

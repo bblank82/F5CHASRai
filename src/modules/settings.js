@@ -1,6 +1,7 @@
 import { state, setGeminiKey, setGeminiModel, addLogEntry } from './state.js';
 import { setManualLocation, addRadarOverlay } from './map.js';
 import { updateModelBadge } from './agent.js';
+import { showCustomConfirm } from './ui.js';
 
 export function initSettings() {
   const btn = document.getElementById('settings-btn');
@@ -66,7 +67,7 @@ export function initSettings() {
       const lat = parseFloat(latInput?.value);
       const lon = parseFloat(lonInput?.value);
       if (isNaN(lat) || isNaN(lon)) {
-        alert('Please enter valid latitude and longitude.');
+        showCustomAlert('Please enter valid latitude and longitude.', { title: 'Invalid Coordinates', type: 'warning' });
         return;
       }
       setManualLocation(lat, lon);
@@ -78,8 +79,16 @@ export function initSettings() {
   // Reset all settings
   const resetSettingsBtn = document.getElementById('reset-settings-btn');
   if (resetSettingsBtn) {
-    resetSettingsBtn.addEventListener('click', () => {
-      if (confirm('Are you sure you want to reset all settings? This will clear your local preferences and history, but keep your API key.')) {
+    resetSettingsBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const confirmed = await showCustomConfirm(
+        'Are you sure you want to reset all settings? This will clear your local preferences and history, but keep your API key.',
+        { title: 'Safe Reset', confirmText: 'Reset Everything', type: 'danger' }
+      );
+      
+      if (confirmed) {
         localStorage.clear();
         // sessionStorage is not cleared, preserving the Gemini API key
         window.location.reload();

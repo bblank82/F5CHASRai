@@ -1,12 +1,13 @@
 // modules/log.js — Chase Log
 import { state, addLogEntry } from './state.js';
+import { showCustomConfirm } from './ui.js';
 
 export function initLog() {
   document.getElementById('log-btn').addEventListener('click', openLog);
   document.getElementById('log-close-btn').addEventListener('click', closeLog);
   document.getElementById('log-modal').querySelector('.modal-backdrop').addEventListener('click', closeLog);
   document.getElementById('export-log-btn').addEventListener('click', exportLog);
-  document.getElementById('clear-log-btn').addEventListener('click', clearLog);
+  document.getElementById('clear-log-btn').addEventListener('click', (e) => clearLog(e));
 }
 
 export function openLog() {
@@ -49,8 +50,19 @@ function exportLog() {
   URL.revokeObjectURL(url);
 }
 
-function clearLog() {
-  if (!confirm('Clear all chase log entries?')) return;
+async function clearLog(e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  
+  const confirmed = await showCustomConfirm(
+    'Are you sure you want to clear all entries in the chase log?',
+    { title: 'Clear History', confirmText: 'Clear Log', type: 'danger' }
+  );
+  
+  if (!confirmed) return;
+  
   state.chaseLog.length = 0;
   localStorage.removeItem('chase_log');
   renderLogEntries();

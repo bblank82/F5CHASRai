@@ -369,6 +369,12 @@ body.archive-mode .status-badge::before { content: 'HISTORICAL DATA - '; }
 }
 .icon-btn-text:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-accent); transform: translateY(-1px); }
 .icon-btn-text:active { transform: translateY(0); }
+.icon-btn-text.active {
+  background: var(--accent) !important;
+  color: #000 !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 10px var(--accent-glow);
+}
 
 .icon-btn-danger {
   height: 34px;
@@ -523,6 +529,13 @@ body.archive-mode .status-badge::before { content: 'HISTORICAL DATA - '; }
 
 .leaflet-control-zoom a { background: var(--bg-panel) !important; color: var(--text-primary) !important; border-color: var(--border) !important; }
 .leaflet-control-attribution { background: rgba(8,9,12,0.8) !important; color: var(--text-muted) !important; font-size: 9px !important; }
+
+/* Pointer Events: Ignore overlays during position picking (ensures map click registers) */
+#map.picking-active .leaflet-overlay-pane,
+#map.picking-active .leaflet-marker-pane,
+#map.picking-active .leaflet-popup-pane {
+  pointer-events: none !important;
+}
 
 /* Storm Track Panel Overhaul */
 #track-panel {
@@ -1774,4 +1787,107 @@ body.archive-mode .accordion-item .accordion-header {
   font-weight: 900;
   color: var(--accent);
   white-space: nowrap;
+}
+
+/* ===== CUSTOM CONFIRM DIALOG ===== */
+.custom-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85); /* Darker backdrop to isolate context */
+  backdrop-filter: blur(12px);
+  z-index: 9999; /* Ensure it's above everything, including other modals */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fade-in 0.2s ease-out;
+  padding: 20px;
+}
+
+.custom-confirm-overlay.fade-out {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.custom-confirm-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.8);
+  animation: slide-up 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: scale(0.9) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.custom-confirm-header {
+  padding: 12px 18px;
+  border-bottom: 2px solid var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  background: var(--bg-panel-header);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.custom-confirm-body {
+  padding: 24px 18px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.custom-confirm-footer {
+  padding: 12px 18px;
+  display: flex;
+  gap: 12px;
+  background: rgba(0,0,0,0.1);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.custom-confirm-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: var(--radius);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.custom-confirm-btn.cancel {
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+.custom-confirm-btn.cancel:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.custom-confirm-btn.confirm {
+  background: var(--accent);
+  color: #000;
+}
+.custom-confirm-btn.confirm:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+.custom-confirm-btn.confirm:active {
+  transform: translateY(0);
 }

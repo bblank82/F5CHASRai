@@ -1,4 +1,5 @@
 import { state, setTargetTime, addLogEntry, uiState, saveUIState } from './state.js';
+import { showCustomAlert } from './ui.js';
 
 export function initTimeMachine(onTimeChange) {
   const container = document.getElementById('time-machine-bar');
@@ -106,14 +107,14 @@ export function initTimeMachine(onTimeChange) {
     const timeStr = timeInput.value;
     
     if (!dateStr || !timeStr) {
-      alert('Please select both date and time for Archive Mode.');
+      showCustomAlert('Please select both date and time for Archive Mode.', { title: 'Time Machine Error', type: 'warning' });
       return;
     }
 
     // Combine into UTC Date
     const targetDate = new Date(`${dateStr}T${timeStr}:00Z`); 
     if (isNaN(targetDate.getTime())) {
-      alert('Invalid date/time format.');
+      showCustomAlert('Invalid date/time format.', { title: 'Format Error', type: 'danger' });
       return;
     }
 

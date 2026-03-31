@@ -175,7 +175,7 @@ function appendMessage(role, text) {
   div.className = `chat-msg msg-${role}`;
 
   const avatarHtml = role === 'agent' 
-    ? `<img src="/jay.png" class="chat-avatar-icon-small" alt="THE BOSS" />`
+    ? `<img src="jay.png" class="chat-avatar-icon-small" alt="THE BOSS" />`
     : '👤';
   const label = role === 'agent' ? 'THE BOSS' : 'You';
 
@@ -199,7 +199,7 @@ function appendTyping() {
   const div = document.createElement('div');
   div.className = 'chat-msg msg-agent';
   div.innerHTML = `
-    <div class="chat-msg-avatar"><img src="/jay.png" class="chat-avatar-icon-small" alt="THE BOSS" /></div>
+    <div class="chat-msg-avatar"><img src="jay.png" class="chat-avatar-icon-small" alt="THE BOSS" /></div>
     <div class="chat-msg-body">
       <div class="chat-msg-role">THE BOSS</div>
       <div class="chat-typing">
