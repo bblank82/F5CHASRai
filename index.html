@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Storm Chaser — Real-time meteorology agent for active storm chasers. Live NWS alerts, SPC outlooks, intercept planning, and AI-powered chase guidance." />
+  <title>⚡ F5CHASRai - Chase Management Console</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet" />
+
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+
+<body>
+  <!-- ===== TOP NAV ===== -->
+  <header class="app-header">
+    <div id="header-left">
+      <div class="logo">
+        <img src="chaselogo.png" alt="F5CHASRai" class="app-logo">
+      </div>
+      <div id="location-status-badge" class="status-badge badge-neutral">
+        <span id="location-icon">📍</span>
+        <span id="location-text">Locating...</span>
+      </div>
+      <div class="header-controls">
+        <button id="center-location-btn" class="icon-btn" title="Center map on my physical location">🎯</button>
+        <button id="set-pos-btn" class="icon-btn-text" title="Click map to set your chase position">📍 Set Pos</button>
+        <button id="bailout-btn" class="icon-btn-danger" title="Bail out route">🚨 BAIL OUT</button>
+      </div>
+    </div>
+
+    <div id="time-machine-bar" class="time-machine-bar">
+      <div id="tm-toggle-switch" class="tm-switch">
+        <div id="tm-live-btn" class="tm-option active">Live</div>
+        <div id="tm-archive-btn" class="tm-option">Archive</div>
+        <div id="tm-slider" class="tm-slider"></div>
+      </div>
+      <div id="tm-controls" class="tm-controls hidden">
+        <input type="date" id="archive-date" class="tm-input">
+        <input type="time" id="archive-time" class="tm-input">
+        <button id="archive-apply-btn" class="tm-btn">Go</button>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div id="alert-count-badge" class="badge-chip badge-warning hidden">
+        <span>🔔</span>
+        <span id="alert-count-num">0</span>
+        <span>ALERTS</span>
+      </div>
+      <button id="refresh-all-btn" class="icon-btn" title="Refresh all data">🔄</button>
+      <button id="settings-btn" class="icon-btn" title="Settings">⚙️</button>
+      <button id="log-btn" class="icon-btn" title="Chase Log">📋</button>
+    </div>
+  </header>
+
+  <!-- ===== MAIN LAYOUT ===== -->
+  <main id="app-main">
+
+    <!-- ===== LEFT COLUMN: MAP ===== -->
+    <section id="map-section">
+      <div id="map-toolbar">
+        <span class="toolbar-label">LAYERS</span>
+        <button class="layer-toggle active" data-layer="counties" id="toggle-counties">KAKEland</button>
+        <button class="layer-toggle active" data-layer="spc" id="toggle-spc">SPC Outlook</button>
+        <button class="layer-toggle active" data-layer="alerts" id="toggle-alerts">NWS</button>
+        <button class="layer-toggle active" data-layer="track" id="toggle-track">Storm Track</button>
+        <button class="layer-toggle" data-layer="radar" id="toggle-radar">Radar</button>
+        <div id="radar-controls" class="toolbar-sub-group hidden">
+          <select id="radar-mode-select" class="toolbar-select">
+            <option value="composite">Composite</option>
+            <option value="single">Single Site</option>
+          </select>
+          <select id="radar-source-select" class="toolbar-select">
+            <option value="iem">IEM (NWS)</option>
+            <option value="rainviewer">RainViewer (Smooth)</option>
+            <option value="nowcoast">NowCOAST (MRMS)</option>
+          </select>
+          <div id="radar-product-btns">
+            <button class="prod-btn active" data-prod="N0Q" title="Base Reflectivity">REFL</button>
+            <button class="prod-btn" data-prod="N0U" title="Base Velocity">VEL</button>
+            <button class="prod-btn" data-prod="N0S" title="Storm Relative Velocity">SRV</button>
+            <button class="prod-btn" data-prod="NET" title="Echo Tops">TOPS</button>
+          </div>
+          <span id="radar-site-badge" class="badge-chip badge-neutral hidden">KTLX</span>
+          <div class="toolbar-divider"></div>
+          <div class="radar-opacity-control">
+            <span class="toolbar-label">Opacity</span>
+            <input type="range" id="radar-opacity-slider" min="0.1" max="1.0" step="0.05" value="0.9" />
+            <span id="radar-opacity-value" class="badge-chip badge-neutral">90%</span>
+          </div>
+        </div>
+      </div>
+      <div id="map"></div>
+
+      <!-- Radar Legend -->
+      <div id="radar-legend"></div>
+
+      <div id="track-panel">
+        <div id="track-panel-header">
+          <div class="panel-title">🌀 STORM TRACK PLANNER</div>
+          <button id="track-panel-toggle" class="panel-toggle" title="Toggle track planner"></button>
+        </div>
+        <div id="track-panel-body">
+          <div class="track-input-row">
+            <button id="storm-pick-btn" class="map-action-btn" title="Pick storm center from map">🎯 Pick Storm</button>
+            <div class="input-group">
+              <label>Storm Lat</label>
+              <input type="number" id="storm-lat" placeholder="35.500" step="0.001" />
+            </div>
+            <div class="input-group">
+              <label>Storm Lon</label>
+              <input type="number" id="storm-lon" placeholder="-98.000" step="0.001" />
+            </div>
+            <div class="input-group">
+              <label>Direction (°)</label>
+              <input type="number" id="storm-dir" placeholder="045" min="0" max="360" />
+            </div>
+            <div class="input-group">
+              <label>Speed (kt)</label>
+              <input type="number" id="storm-speed" placeholder="35" min="0" max="100" />
+            </div>
+            <button id="plot-track-btn" class="action-btn">Plot Track</button>
+          </div>
+          <div id="intercept-suggestions"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== RIGHT COLUMN ===== -->
+    <aside id="right-panel">
+
+      <!-- Accordion Item: Instability -->
+      <div class="accordion-item" id="acc-instability">
+        <div class="accordion-header" id="acc-header-instability">
+          <span class="panel-icon">📊</span>
+          <span class="panel-title">CONDITIONS</span>
+          <button class="refresh-btn" id="refresh-instability" title="Refresh">↻</button>
+        </div>
+        <div class="accordion-content">
+          <div class="sounding-grid" id="sounding-grid">
+            <div class="loading-state">Acquiring atmospheric data…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Accordion Item: Radar Metadata -->
+      <div class="accordion-item expanded" id="acc-radar-metadata">
+        <div class="accordion-header" id="acc-header-radar-metadata">
+          <span class="panel-icon">🛰️</span>
+          <span class="panel-title">RADAR DATA</span>
+          <span class="panel-badge" id="radar-metadata-site">—</span>
+        </div>
+        <div class="accordion-content">
+          <div class="metadata-grid" id="radar-metadata-grid">
+            <div class="metadata-item">
+              <span class="metadata-label">PRODUCT</span>
+              <span class="metadata-value" id="radar-meta-product">—</span>
+            </div>
+            <div class="metadata-item">
+              <span class="metadata-label">TILT</span>
+              <span class="metadata-value" id="radar-meta-tilt">—</span>
+            </div>
+            <div class="metadata-item">
+              <span class="metadata-label">VALID TIME</span>
+              <span class="metadata-value" id="radar-meta-time">—</span>
+            </div>
+            <div class="metadata-item">
+              <span class="metadata-label">PROVIDER</span>
+              <span class="metadata-value" id="radar-meta-provider">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Accordion Item: Alerts -->
+      <div class="accordion-item" id="acc-alerts">
+        <div class="accordion-header" id="acc-header-alerts">
+          <span class="panel-icon">⚠️</span>
+          <span class="panel-title">ACTIVE ALERTS</span>
+          <span class="panel-badge" id="alerts-count-badge">0</span>
+          <button class="refresh-btn" id="refresh-alerts" title="Refresh">↻</button>
+        </div>
+        <div class="accordion-content">
+          <div id="alerts-body">
+            <div class="loading-state">Fetching NWS alerts…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Accordion Item: SPC Outlook -->
+      <div class="accordion-item" id="acc-spc">
+        <div class="accordion-header" id="acc-header-spc">
+          <span class="panel-icon">🗺️</span>
+          <span class="panel-title">SPC OUTLOOK</span>
+          <span class="panel-badge" id="spc-day-badge">Day 1</span>
+        </div>
+        <div class="accordion-content">
+          <div class="day-toggle-group">
+            <button class="day-btn active" data-day="1">D1</button>
+            <button class="day-btn" data-day="2">D2</button>
+            <button class="day-btn" data-day="3">D3</button>
+          </div>
+          <div id="spc-body">
+            <div class="loading-state">Loading SPC outlook…</div>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+  </main>
+
+  <!-- ===== AI CHAT PANEL ===== -->
+  <div id="chat-section">
+    <div id="chat-header">
+      <div id="chat-title-group">
+        <img src="/jay.png" alt="JayAI" class="chat-avatar-icon" />
+        <span id="chat-title">Ask JayAI...</span>
+      </div>
+      <div id="chat-header-actions">
+        <span id="chat-model-badge">Gemini 3 Flash</span>
+        <button id="chat-clear-btn" class="icon-btn-sm" title="Clear chat">🗑</button>
+        <button id="chat-toggle-btn" class="panel-toggle" title="Toggle chat"></button>
+      </div>
+    </div>
+    <div id="chat-messages" aria-live="polite" aria-label="Chat messages"></div>
+    <div id="chat-input-bar">
+      <div id="quick-prompts">
+        <button class="quick-prompt-btn" data-prompt="What's the tornado potential for my current location today?">🌪
+          Tornado Potential</button>
+        <button class="quick-prompt-btn" data-prompt="Where should I position for optimal storm intercept right now?">🎯
+          Intercept Position</button>
+        <button class="quick-prompt-btn"
+          data-prompt="Analyze the current instability data and tell me chase viability.">📊 Chase Viability</button>
+        <button class="quick-prompt-btn"
+          data-prompt="What are my escape route options and key safety considerations?">🚗 Escape Routes</button>
+      </div>
+      <div id="chat-input-row">
+        <textarea id="chat-input"
+          placeholder="Ask JayAI... (e.g. 'Is this a good day to chase near KAKEland?')" rows="1"
+          aria-label="Chat input"></textarea>
+        <button id="chat-send-btn" aria-label="Send message">Send ➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SETTINGS MODAL ===== -->
+  <div id="settings-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Settings">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card">
+      <div class="modal-header">
+        <span>⚙️ Settings</span>
+        <button class="modal-close-btn" id="settings-close-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-group">
+          <label for="gemini-key-input">Gemini API Key</label>
+          <p class="setting-desc">Required for the AI chat agent. Get a free key at <a
+              href="https://aistudio.google.com" target="_blank">aistudio.google.com</a>. Stored only in your browser
+            session.</p>
+          <div class="key-input-row">
+            <input type="password" id="gemini-key-input" placeholder="AIza…" autocomplete="off" />
+            <button id="save-key-btn" class="action-btn">Save</button>
+          </div>
+          <div id="key-status" class="key-status"></div>
+        </div>
+        <div class="setting-group">
+          <label for="gemini-model-input">Gemini Model ID</label>
+          <p class="setting-desc">Specify the Gemini model to use (e.g. gemini-3-flash, gemini-1.5-pro).</p>
+          <div class="key-input-row">
+            <input type="text" id="gemini-model-input" placeholder="gemini-3-flash-preview" />
+            <button id="save-model-btn" class="action-btn">Save Model</button>
+          </div>
+          <div id="model-status" class="key-status"></div>
+        </div>
+        <div class="setting-group">
+          <label>Manual Location Override</label>
+          <p class="setting-desc">Set your position manually if GPS is unavailable.</p>
+          <div class="location-input-row">
+            <input type="number" id="manual-lat" placeholder="Latitude (35.46)" step="0.001" />
+            <input type="number" id="manual-lon" placeholder="Longitude (-97.52)" step="0.001" />
+            <button id="set-manual-location-btn" class="action-btn">Set Location</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CHASE LOG MODAL ===== -->
+  <div id="log-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Chase Log">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card modal-card-wide">
+      <div class="modal-header">
+        <span>📋 Chase Log</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button id="export-log-btn" class="action-btn">Export JSON</button>
+          <button id="clear-log-btn" class="action-btn danger-action-btn">Clear</button>
+          <button class="modal-close-btn" id="log-close-btn">✕</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div id="log-entries">
+          <div class="loading-state">No log entries yet. Activity will be recorded here during your chase.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
