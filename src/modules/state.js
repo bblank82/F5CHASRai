@@ -57,6 +57,8 @@ export const state = {
   alertFilters: uiState.alertFilters,
   basemapId: uiState.basemapId || 'dark',
   lastRainViewerHash: null,
+  lastGoodLat: uiState.position.userLat,
+  lastGoodLon: uiState.position.userLon,
   targetTime: null, // null = Live Mode
   stormTrack: null,
   chatHistory: [],
@@ -107,6 +109,12 @@ export function setRadarSource(s) {
 export function setLocation(lat, lon, isManual = false) {
   state.userLat = lat;
   state.userLon = lon;
+  
+  // Track last known good point (for fallbacks)
+  if (lat && lon) {
+    state.lastGoodLat = lat;
+    state.lastGoodLon = lon;
+  }
   
   if (isManual) {
     uiState.position = { userLat: lat, userLon: lon };

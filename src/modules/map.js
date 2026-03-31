@@ -149,7 +149,7 @@ function requestGeolocation() {
       document.getElementById('location-status-badge').classList.remove('badge-neutral');
       document.getElementById('location-status-badge').classList.add('badge-warning');
     },
-    { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+    { enableHighAccuracy: true, maximumAge: 10000, timeout: 30000 }
   );
 }
 
@@ -212,36 +212,57 @@ export function centerOnUser(forceGPS = false) {
       addLogEntry('system', 'Geolocation is not supported by this browser.');
       return;
     }
-    
-    // Immediate visual feedback
-    const locText = document.getElementById('location-text');
-    if (locText) locText.textContent = 'Locating...';
-    
-    // Reset state to force the "Locating..." state even if logic fails
-    state.userLat = null;
-    state.userLon = null;
 
-    navigator.geolocation.getCurrentPosition((pos) => {
-      const { latitude: lat, longitude: lon } = pos.coords;
-      setLocation(lat, lon, false); // Not manual
-      updateUserMarker(lat, lon);
-      updateLocationDisplay(lat, lon);
-      map.setView([lat, lon], Math.max(map.getZoom(), 8), { animate: true });
-      addLogEntry('system', 'GPS Location Lock Re-established.');
-    }, (err) => {
-      console.warn('GPS Reset Failed:', err);
-      // Fallback: use last known state or notify user
-      addLogEntry('system', `GPS Reset Failed: ${err.message}`);
-      if (uiState.position.userLat) {
-        updateLocationDisplay(uiState.position.userLat, uiState.position.userLon, 'manual');
-      } else {
-        if (locText) locText.textContent = err.code === 1 ? 'GPS Denied' : 'GPS Error';
-      }
-    }, { 
-      enableHighAccuracy: true, 
-      timeout: 10000, 
-      maximumAge: 0 // Force fresh reading
-    });
+    const locText = document.getElementById('location-text');
+    if (locText) locText.textContent = 'Locating (GPS)...';
+    
+    // Stage 1: High Accuracy (GPS)
+    const tryGPS = (isFallback = false) => {
+      const modeName = isFallback ? 'Network/Cell' : 'High-Precision GPS';
+      if (locText) locText.textContent = `Locating (${modeName})...`;
+      
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const { latitude: lat, longitude: lon } = pos.coords;
+        const accuracy = pos.coords.accuracy;
+        const method = isFallback ? 'Network Fallback' : 'GPS Lock';
+        
+        setLocation(lat, lon, false);
+        updateUserMarker(lat, lon);
+        updateLocationDisplay(lat, lon);
+        map.setView([lat, lon], Math.max(map.getZoom(), 8), { animate: true });
+        addLogEntry('system', `Location Re-established via ${method} (±${Math.round(accuracy)}m).`);
+      }, (err) => {
+        console.warn(`${modeName} failed:`, err);
+        
+        if (!isFallback && err.code === err.TIMEOUT) {
+          addLogEntry('system', 'GPS High-Precision Timeout: Attempting Network Fallback...');
+          tryGPS(true); // Attempt low accuracy
+        } else {
+          // Total failure or denied
+          const reason = err.code === 1 ? 'Permission Denied' : 'Signal Lost';
+          addLogEntry('system', `GPS Reset Failed (${reason}): Reverting to last known.`);
+          
+          if (state.lastGoodLat) {
+            const lat = state.lastGoodLat;
+            const lon = state.lastGoodLon;
+            setLocation(lat, lon, false);
+            updateUserMarker(lat, lon);
+            updateLocationDisplay(lat, lon, 'last known');
+            map.setView([lat, lon], Math.max(map.getZoom(), 8), { animate: true });
+          } else if (uiState.position.userLat) {
+             updateLocationDisplay(uiState.position.userLat, uiState.position.userLon, 'manual');
+          } else {
+            if (locText) locText.textContent = `Error: ${reason}`;
+          }
+        }
+      }, { 
+        enableHighAccuracy: !isFallback, 
+        timeout: isFallback ? 10000 : 20000, 
+        maximumAge: 5000 
+      });
+    };
+
+    tryGPS(false);
   } else if (state.userLat && state.userLon) {
     map.setView([state.userLat, state.userLon], map.getZoom(), { animate: true });
   }
