@@ -1,5 +1,5 @@
 // modules/map.js — Leaflet map, layers, and controls
-import { state, setLocation, addLogEntry, uiState, saveUIState, setRadarSource, setRadarOpacity } from './state.js';
+import { state, setLocation, addLogEntry, uiState, saveUIState, setRadarSource, setRadarOpacity, setBasemapContrast, setBasemapLabelsBrightness, setRadarTilt, setBasemap } from './state.js';
 import { reverseGeocode } from './geocoding.js';
 import { findNearestStation, getRadarTileUrl, getCompositeTileUrl, RADAR_LEGENDS, updateRadarMetadataUI } from './radar.js';
 import { initCounties } from './counties.js';
@@ -23,10 +23,13 @@ export function initMap() {
     saveUIState();
   });
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '© OpenStreetMap contributors, © CARTO',
-    maxZoom: 18,
-  }).addTo(map);
+  // Custom Pane for Labels (On separate pane to stay above radar/overlays)
+  map.createPane('labelsPane');
+  map.getPane('labelsPane').style.zIndex = 500;
+  map.getPane('labelsPane').style.pointerEvents = 'none';
+
+  // Initialize Basemap from State
+  updateBasemap(state.basemapId);
 
   // Custom pane for radar tiles — allows isolated CSS (blend mode, no filter)
   map.createPane('radarPane');
@@ -63,6 +66,7 @@ export function initMap() {
 
   setupLayerToggles();
   setupRadarControls();
+  setupBasemapControls();
   requestGeolocation();
 
   // Map click handler
@@ -106,14 +110,32 @@ function requestGeolocation() {
     locText.textContent = 'GPS unavailable';
     return;
   }
+  
+  // Basic one-shot to get initial position fast
+  navigator.geolocation.getCurrentPosition((pos) => {
+    // Only if not already set by manual override
+    if (uiState.position.userLat === null) {
+      const { latitude: lat, longitude: lon } = pos.coords;
+      setLocation(lat, lon, false);
+      updateUserMarker(lat, lon);
+      updateLocationDisplay(lat, lon);
+      refreshRadarSiteFromLocation(lat, lon);
+    }
+  }, () => {}, { enableHighAccuracy: true });
+
   navigator.geolocation.watchPosition(
     (pos) => {
       const lat = pos.coords.latitude;
       const lon = pos.coords.longitude;
-      setLocation(lat, lon);
-      updateUserMarker(lat, lon);
-      updateLocationDisplay(lat, lon);
-      refreshRadarSiteFromLocation(lat, lon);
+      
+      // If we don't have a manual override in uiState, let watchPosition update state
+      if (uiState.position.userLat === null) {
+        setLocation(lat, lon, false);
+        updateUserMarker(lat, lon);
+        updateLocationDisplay(lat, lon);
+        refreshRadarSiteFromLocation(lat, lon);
+      }
+      
       document.getElementById('location-icon').textContent = '📍';
       document.getElementById('location-status-badge').classList.remove('badge-warning');
       document.getElementById('location-status-badge').classList.add('badge-neutral');
@@ -161,7 +183,7 @@ function refreshRadarSiteFromLocation(lat, lon) {
 }
 
 export function setManualLocation(lat, lon) {
-  setLocation(lat, lon);
+  setLocation(lat, lon, true); // true = isManual
   updateUserMarker(lat, lon);
   map.setView([lat, lon], 8);
   updateLocationDisplay(lat, lon, 'manual');
@@ -184,9 +206,27 @@ async function updateLocationDisplay(lat, lon, suffix = '') {
   }
 }
 
-export function centerOnUser() {
-  if (state.userLat && state.userLon) {
-    map.setView([state.userLat, state.userLon], 9, { animate: true });
+export function centerOnUser(forceGPS = false) {
+  if (forceGPS) {
+    if (!navigator.geolocation) return;
+    
+    // Immediate visual feedback
+    const locText = document.getElementById('location-text');
+    if (locText) locText.textContent = 'Locating...';
+    
+    navigator.geolocation.getCurrentPosition((pos) => {
+      const { latitude: lat, longitude: lon } = pos.coords;
+      setLocation(lat, lon, false); // Not manual
+      updateUserMarker(lat, lon);
+      updateLocationDisplay(lat, lon);
+      map.setView([lat, lon], Math.max(map.getZoom(), 8), { animate: true });
+      addLogEntry('system', 'GPS Location Lock Re-established.');
+    }, (err) => {
+      addLogEntry('system', `GPS Reset Failed: ${err.message}`);
+      updateLocationDisplay(state.userLat, state.userLon, uiState.position.userLat ? 'manual' : '');
+    }, { enableHighAccuracy: true });
+  } else if (state.userLat && state.userLon) {
+    map.setView([state.userLat, state.userLon], map.getZoom(), { animate: true });
   }
 }
 
@@ -392,7 +432,12 @@ export async function addRadarOverlay() {
   
   let rs;
   if (state.radarMode === 'single' && state.radarSite) {
-    rs = getRadarTileUrl(state.radarSite, state.radarProduct);
+    let p = state.radarProduct;
+    // Apply tilt if applicable to IEM product codes (N0Q, N0U, N0S)
+    if (state.radarTilt && state.radarTilt !== '0' && (p === 'N0Q' || p === 'N0U' || p === 'N0S')) {
+      p = state.radarTilt + p.substring(1);
+    }
+    rs = getRadarTileUrl(state.radarSite, p);
   } else {
     // Composite only supports N0Q and NET
     const prod = (state.radarProduct === 'N0Q' || state.radarProduct === 'NET') ? state.radarProduct : 'N0Q';
@@ -502,6 +547,13 @@ function setupRadarControls() {
         }
       } else {
         badge && badge.classList.add('hidden');
+        if (state.radarProduct !== 'N0Q') {
+          state.radarProduct = 'N0Q';
+          const btns = document.querySelectorAll('#radar-product-btns .prod-btn');
+          btns.forEach(b => {
+             b.classList.toggle('active', b.dataset.prod === 'N0Q');
+          });
+        }
       }
 
       syncRadarControlsUI();
@@ -552,8 +604,116 @@ function setupRadarControls() {
     });
   });
 
+  // Tilt Selector
+  const tiltSelect = document.getElementById('radar-tilt-select');
+  if (tiltSelect) {
+    tiltSelect.value = state.radarTilt || '0';
+    tiltSelect.addEventListener('change', (e) => {
+      setRadarTilt(e.target.value);
+      addRadarOverlay();
+    });
+  }
+
   // Initial sync
   syncRadarControlsUI();
+}
+
+const BASEMAP_CFG = {
+  dark: {
+    base: 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',
+    labels: 'https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png'
+  },
+  roads: {
+    base: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png',
+    labels: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png'
+  },
+  light: {
+    base: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
+    labels: 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png'
+  },
+  topo: {
+    base: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    labels: null
+  }
+};
+
+let baseLayer, labelLayer;
+
+export function updateBasemap(id) {
+  const cfg = BASEMAP_CFG[id] || BASEMAP_CFG.dark;
+  if (baseLayer) map.removeLayer(baseLayer);
+  if (labelLayer) map.removeLayer(labelLayer);
+
+  baseLayer = L.tileLayer(cfg.base, {
+    attribution: '© CARTO, © OSM',
+    maxZoom: 18
+  }).addTo(map);
+
+  if (cfg.labels) {
+    labelLayer = L.tileLayer(cfg.labels, {
+      pane: 'labelsPane',
+      maxZoom: 18
+    }).addTo(map);
+    applyLabelsFilter(state.basemapLabelsBrightness);
+  }
+  
+  applyBasemapFilter(state.basemapContrast);
+}
+
+export function setupBasemapControls() {
+  const contrastSlider = document.getElementById('map-contrast-slider');
+  const contrastValue = document.getElementById('map-contrast-value');
+  const labelSlider = document.getElementById('map-labels-slider');
+  const labelValue = document.getElementById('map-labels-value');
+  const basemapSelect = document.getElementById('basemap-select');
+
+  if (contrastSlider && contrastValue) {
+    contrastSlider.value = state.basemapContrast || 1.0;
+    contrastValue.textContent = `${Math.round(contrastSlider.value * 100)}%`;
+    applyBasemapFilter(contrastSlider.value);
+    contrastSlider.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      contrastValue.textContent = `${Math.round(val * 100)}%`;
+      setBasemapContrast(val);
+      applyBasemapFilter(val);
+    });
+  }
+
+  if (labelSlider && labelValue) {
+    labelSlider.value = state.basemapLabelsBrightness || 1.0;
+    labelValue.textContent = `${Math.round(labelSlider.value * 100)}%`;
+    applyLabelsFilter(labelSlider.value);
+    labelSlider.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      labelValue.textContent = `${Math.round(val * 100)}%`;
+      setBasemapLabelsBrightness(val);
+      applyLabelsFilter(val);
+    });
+  }
+
+  if (basemapSelect) {
+    basemapSelect.value = state.basemapId || 'dark';
+    basemapSelect.addEventListener('change', (e) => {
+      setBasemap(e.target.value);
+      updateBasemap(e.target.value);
+    });
+  }
+}
+
+function applyBasemapFilter(val) {
+  const pane = map.getPane('tilePane');
+  if (pane) {
+    const brightness = val < 1.0 ? 0.7 + (val * 0.3) : 1.0;
+    pane.style.filter = `contrast(${val}) brightness(${brightness})`;
+  }
+}
+
+function applyLabelsFilter(val) {
+  const pane = map.getPane('labelsPane');
+  if (pane) {
+    // Specifically brighten the labels layer
+    pane.style.filter = `brightness(${val}) contrast(1.2)`;
+  }
 }
 
 function syncRadarControlsUI() {

@@ -31,8 +31,9 @@
         <span id="location-text">Locating...</span>
       </div>
       <div class="header-controls">
-        <button id="center-location-btn" class="icon-btn" title="Center map on my physical location">🎯</button>
-        <button id="set-pos-btn" class="icon-btn-text" title="Click map to set your chase position">📍 Set Pos</button>
+        <button id="center-location-btn" class="icon-btn" title="Zoom Map to Current Position">🎯</button>
+        <button id="reset-gps-btn" class="icon-btn" title="Reset to Live GPS">🛰️</button>
+        <button id="set-pos-btn" class="icon-btn-text" title="Click map to set your chase position">📍 SET POSITION</button>
         <button id="bailout-btn" class="icon-btn-danger" title="Bail out route">🚨 BAIL OUT</button>
       </div>
     </div>
@@ -90,13 +91,16 @@
             <button class="prod-btn" data-prod="N0S" title="Storm Relative Velocity">SRV</button>
             <button class="prod-btn" data-prod="NET" title="Echo Tops">TOPS</button>
           </div>
-          <span id="radar-site-badge" class="badge-chip badge-neutral hidden">KTLX</span>
-          <div class="toolbar-divider"></div>
-          <div class="radar-opacity-control">
-            <span class="toolbar-label">Opacity</span>
-            <input type="range" id="radar-opacity-slider" min="0.1" max="1.0" step="0.05" value="0.9" />
-            <span id="radar-opacity-value" class="badge-chip badge-neutral">90%</span>
+          <div id="tilt-control-toolbar" class="toolbar-group hidden">
+            <span class="toolbar-label">TILT</span>
+            <select id="radar-tilt-select" class="toolbar-select">
+              <option value="0">0.5°</option>
+              <option value="1">0.9°</option>
+              <option value="2">1.3°</option>
+              <option value="3">1.8°</option>
+            </select>
           </div>
+          <span id="radar-site-badge" class="badge-chip badge-neutral hidden">KTLX</span>
         </div>
       </div>
       <div id="map"></div>
@@ -143,7 +147,6 @@
         <div class="accordion-header" id="acc-header-instability">
           <span class="panel-icon">📊</span>
           <span class="panel-title">CONDITIONS</span>
-          <button class="refresh-btn" id="refresh-instability" title="Refresh">↻</button>
         </div>
         <div class="accordion-content">
           <div class="sounding-grid" id="sounding-grid">
@@ -178,6 +181,15 @@
               <span class="metadata-value" id="radar-meta-provider">—</span>
             </div>
           </div>
+
+          <div class="panel-control-group">
+            <div class="control-row">
+              <span class="control-label">OPACITY</span>
+              <input type="range" id="radar-opacity-slider" min="0.1" max="1.0" step="0.05" value="0.9" />
+              <span id="radar-opacity-value" class="badge-chip badge-neutral">90%</span>
+            </div>
+          </div>
+        </div>
         </div>
       </div>
 
@@ -187,9 +199,17 @@
           <span class="panel-icon">⚠️</span>
           <span class="panel-title">ACTIVE ALERTS</span>
           <span class="panel-badge" id="alerts-count-badge">0</span>
-          <button class="refresh-btn" id="refresh-alerts" title="Refresh">↻</button>
         </div>
         <div class="accordion-content">
+          <div class="panel-actions" style="margin-bottom: 10px; padding: 0 4px; justify-content: flex-end; display: flex; align-items: center; gap: 8px;">
+            <button class="icon-btn" id="filter-alerts-btn" title="Filter Alerts" style="width:24px; height:24px; padding:2px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+            </button>
+            <button class="refresh-btn" id="refresh-alerts" title="Refresh">↻</button>
+          </div>
+          <div id="alert-filter-menu" class="panel-filter-menu hidden">
+            <!-- Dynamically populated -->
+          </div>
           <div id="alerts-body">
             <div class="loading-state">Fetching NWS alerts…</div>
           </div>
@@ -205,12 +225,43 @@
         </div>
         <div class="accordion-content">
           <div class="day-toggle-group">
-            <button class="day-btn active" data-day="1">D1</button>
-            <button class="day-btn" data-day="2">D2</button>
-            <button class="day-btn" data-day="3">D3</button>
+            <button class="day-btn active" data-day="1">DAY 1</button>
+            <button class="day-btn" data-day="2">DAY 2</button>
+            <button class="day-btn" data-day="3">DAY 3</button>
           </div>
           <div id="spc-body">
             <div class="loading-state">Loading SPC outlook…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Accordion Item: Map Style -->
+      <div class="accordion-item" id="acc-map-style">
+        <div class="accordion-header" id="acc-header-map-style">
+          <span class="panel-icon">🔧</span>
+          <span class="panel-title">MAP SETTINGS</span>
+        </div>
+        <div class="accordion-content">
+          <div class="panel-control-group">
+            <div class="control-row">
+              <span class="control-label">CONTRAST</span>
+              <input type="range" id="map-contrast-slider" min="0.4" max="1.4" step="0.05" value="1.0" />
+              <span id="map-contrast-value" class="badge-chip badge-neutral">100%</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">LABELS</span>
+              <input type="range" id="map-labels-slider" min="0.5" max="2.0" step="0.1" value="1.0" />
+              <span id="map-labels-value" class="badge-chip badge-neutral">100%</span>
+            </div>
+            <div class="control-row">
+              <span class="control-label">BASEMAP</span>
+              <select id="basemap-select" class="panel-select">
+                <option value="dark">Dark Matter (Default)</option>
+                <option value="roads">High Contrast Roads (Voyager)</option>
+                <option value="light">Light Mode (Positron)</option>
+                <option value="topo">Terrain (OpenTopoMap)</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -290,7 +341,11 @@
             <button id="set-manual-location-btn" class="action-btn">Set Location</button>
           </div>
         </div>
-
+        <div class="setting-group reset-group">
+          <label>Reset Application</label>
+          <p class="setting-desc">Wipe all local settings and starts fresh. This will not clear your API key.</p>
+          <button id="reset-settings-btn" class="action-btn danger-action-btn">Reset All Settings</button>
+        </div>
       </div>
     </div>
   </div>
@@ -311,6 +366,19 @@
         <div id="log-entries">
           <div class="loading-state">No log entries yet. Activity will be recorded here during your chase.</div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="alert-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card modal-card-wide">
+      <div class="modal-header">
+        <span id="alert-modal-title">🚨 Alert Details</span>
+        <button class="modal-close-btn" id="alert-modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="alert-modal-content" class="alert-detail-content"></div>
       </div>
     </div>
   </div>

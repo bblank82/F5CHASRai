@@ -58,9 +58,10 @@ npm run dev
 
 ## 📝 Recent Major Refinements
 - **Branding Update**: Transitioned from "Storm Chaser" to "F5CHASRai" with dedicated styling.
-- **UI Clean-up**: Removed redundant coordinate displays in the instability panel and non-functional help icons.
-- **Toggle Overhaul**: Implemented unified CSS arrow styling across the Chat, Storm Track, and Sidebar panels.
-- **Switch Modernization**: Replaced legacy checkboxes with a button-based Live/Archive toggle.
+- **Map Settings Evolution**: Implemented a multi-basemap engine (Dark Matter, Voyager Roads, Positron) with independent label brightness and contrast controls.
+- **Alert Management**: Added a persistent filtering system for threat types and a high-contrast modal for technical alert text.
+- **Conditions Overhaul**: Transformed the instability panel into a full-width conditions dashboard with horizontal parameter categorization for improved data density.
+- **Radar Precision**: Relocated scan tilt controls to the primary map toolbar and implemented real-time intervalized timestamps for live radar tiles.
 
 ---
 

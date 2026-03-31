@@ -32,7 +32,8 @@ async function init() {
     { name: 'RadarLegend', fn: initRadarLegend },
     { name: 'TimeMachine', fn: () => initTimeMachine(refreshAllData) },
     { name: 'RefreshButton', fn: initRefreshButton },
-    { name: 'Accordion', fn: initAccordion }
+    { name: 'Accordion', fn: initAccordion },
+    { name: 'ResetGps', fn: initResetGpsButton }
   ];
 
   for (const step of initSteps) {
@@ -53,11 +54,14 @@ async function init() {
   // Init AI agent last (after data is loaded so context is rich)
   setTimeout(() => initAgent(), 500);
 
-  // Set up refresh intervals
+  // Set up refresh intervals (every 5 minutes)
   setInterval(async () => {
     await fetchAlerts();
+    if (state.userLat && state.userLon) {
+      fetchInstability(state.userLat, state.userLon);
+    }
     computeThreatScore();
-  }, 2 * 60 * 1000); // Every 2 minutes
+  }, 5 * 60 * 1000);
 
   setInterval(() => {
     if (state.userLat) fetchInstability(state.userLat, state.userLon);
@@ -243,6 +247,28 @@ function initBailoutButton() {
 // ===== CENTER ON USER =====
 function initCenterButton() {
   document.getElementById('center-location-btn').addEventListener('click', centerOnUser);
+}
+
+function initResetGpsButton() {
+  const btn = document.getElementById('reset-gps-btn');
+  if (btn) {
+    btn.addEventListener('click', () => {
+      // Clear manual override
+      uiState.position = { userLat: null, userLon: null };
+      saveUIState();
+      
+      addLogEntry('system', 'Location reset: Re-acquiring browser GPS...');
+      centerOnUser(true); // Forces fresh GPS read and center
+      
+      // Refresh context-sensitive data after a short delay (enough for lock)
+      setTimeout(() => {
+        if (state.userLat) {
+          fetchInstability(state.userLat, state.userLon);
+        }
+        fetchAlerts();
+      }, 1500);
+    });
+  }
 }
 
 // ===== LOCATION PICKER =====

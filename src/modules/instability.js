@@ -14,6 +14,15 @@ const THRESHOLDS = {
   pwat:      [0.8, 1.2, 1.6, 2.0],      // in
 };
 
+export function initInstabilityPanel() {
+  // Listener is delegated or re-bound on render since we render the button dynamically now
+  document.getElementById('sounding-grid').addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'refresh-instability') {
+      fetchInstability();
+    }
+  });
+}
+
 export async function fetchInstability(lat, lon) {
   const btn = document.getElementById('refresh-instability');
   btn && btn.classList.add('spinning');
@@ -40,7 +49,7 @@ export async function fetchInstability(lat, lon) {
         'cape', 'lifted_index', 'convective_inhibition',
         'wind_speed_10m', 'wind_speed_80m', 'wind_speed_120m',
         'wind_direction_10m', 'wind_direction_80m', 'wind_direction_120m',
-        'dew_point_2m', 'relative_humidity_2m', 'vapour_pressure_deficit',
+        'temperature_2m', 'dew_point_2m', 'relative_humidity_2m', 'vapour_pressure_deficit',
       ].join(','),
       wind_speed_unit: 'kn',
       temperature_unit: 'fahrenheit',
@@ -69,6 +78,7 @@ export async function fetchInstability(lat, lon) {
       dir10:      h.wind_direction_10m?.[idx] ?? null,
       dir80:      h.wind_direction_80m?.[idx] ?? null,
       dir120:     h.wind_direction_120m?.[idx] ?? null,
+      temperature: h.temperature_2m?.[idx] ?? null,
       dewpoint:   h.dew_point_2m?.[idx] ?? null,
       rh:         h.relative_humidity_2m?.[idx] ?? null,
       vpd:        h.vapour_pressure_deficit?.[idx] ?? null,
@@ -146,6 +156,7 @@ function renderInstabilityPanel(r, lat, lon) {
       items: [
         { label: 'SBCAPE', value: r.cape, unit: ' J/kg', color: getValColor(r.cape, THRESHOLDS.cape), status: getCapeStatus(r.cape) },
         { label: 'SBCIN', value: r.cin, unit: ' J/kg', color: getCinColor(r.cin), status: getCinStatus(r.cin) },
+        { label: 'Temperature', value: r.temperature, unit: '°F', color: 'var(--text-primary)', status: r.temperature > 80 ? 'Warm' : 'Mild' },
         { label: 'Lifted Index', value: r.li, unit: '', color: getLiColor(r.li), status: getLiStatus(r.li) },
       ]
     },
@@ -180,18 +191,26 @@ function renderInstabilityPanel(r, lat, lon) {
       ${categories.map(cat => `
         <div class="condition-category">
           <div class="category-title">${cat.icon} ${cat.title}</div>
-          ${cat.items.map(item => `
-            <div class="condition-item">
-              <div class="condition-label">${item.label}</div>
-              <div class="condition-value-row">
-                <div class="condition-value" style="color:${item.color}">${fmt(item.value, '', item.label === 'Lifted Index' || item.label === 'VPD' ? 1 : 0)}</div>
-                <div class="condition-unit">${item.unit}</div>
+          <div class="condition-items-container">
+            ${cat.items.map(item => `
+              <div class="condition-item">
+                <div class="condition-label">${item.label}</div>
+                <div class="condition-value-row">
+                  <div class="condition-value" style="color:${item.color}">${fmt(item.value, '', item.label === 'Lifted Index' || item.label === 'VPD' ? 1 : 0)}</div>
+                  <div class="condition-unit">${item.unit}</div>
+                </div>
+                <div class="condition-status" style="color:${item.color}; border-color:${item.color}44">${item.status}</div>
               </div>
-              <div class="condition-status" style="color:${item.color}; border-color:${item.color}44">${item.status}</div>
-            </div>
-          `).join('')}
+            `).join('')}
+          </div>
         </div>
       `).join('')}
+      <div style="display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:8px; width:100%; border-top:1px solid var(--border); padding-top:8px;">
+        <span style="font-size: 10px; color: var(--text-muted);">
+          Data as of: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </span>
+        <button class="refresh-btn" id="refresh-instability" title="Refresh">↻</button>
+      </div>
     </div>
   `;
 }

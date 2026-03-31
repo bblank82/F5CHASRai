@@ -68,6 +68,13 @@ export async function getCompositeTileUrl(product) {
   }
 
   // Live IEM: use ridge::USCOMP with timestamp 0 (= most recent)
+  // Ensure state matches the valid composite product
+  if (state.radarProduct !== prodCode) {
+    state.radarProduct = prodCode;
+    const btns = document.querySelectorAll('.prod-btn');
+    btns.forEach(b => b.classList.toggle('active', b.dataset.prod === prodCode));
+  }
+
   return {
     type: 'tms',
     url: `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/ridge::USCOMP-${prodCode}-0/{z}/{x}/{y}.png`
@@ -131,6 +138,14 @@ function getIEMTimestamp(date) {
   return `${y}${m}${d}${h}${mi}`;
 }
 
+function getLiveTimestampDisplay() {
+  const now = new Date();
+  const rawMin = now.getUTCMinutes();
+  const h = String(now.getUTCHours()).padStart(2, '0');
+  const mi = String(rawMin - (rawMin % 5)).padStart(2, '0');
+  return `${h}:${mi}Z`;
+}
+
 function formatISO(date) {
   return date.toISOString().split('.')[0] + 'Z';
 }
@@ -187,26 +202,44 @@ export function updateRadarMetadataUI() {
   const timeEl = document.getElementById('radar-meta-time');
   const provEl = document.getElementById('radar-meta-provider');
   const siteBadge = document.getElementById('radar-metadata-site');
+  const tiltControlRow = document.getElementById('tilt-control');
 
   if (!prodEl) return;
 
   const prodNames = {
-    'N0Q': 'Reflectivity (Base)',
+    'N0Q': 'Reflectivity',
     'N0U': 'Velocity (Base)',
     'N0S': 'Rel. Velocity',
     'NET': 'Echo Tops'
   };
 
-  const tilts = {
-    'N0Q': '0.5°',
-    'N0U': '0.5°',
-    'N0S': '0.5°',
-    'NET': 'N/A (Derived)'
-  };
-
   const product = state.radarProduct || 'N0Q';
   prodEl.textContent = prodNames[product] || product;
-  tiltEl.textContent = tilts[product] || '0.5°';
+  
+  // Tilt Logic
+  const tiltLabels = {
+    '0': '0.5° (Base)',
+    '1': '0.9° (Tilt 2)',
+    '2': '1.3° (Tilt 3)',
+    '3': '1.8° (Tilt 4)'
+  };
+  
+  if (product === 'NET') {
+    tiltEl.textContent = 'N/A (Derived)';
+  } else {
+    tiltEl.textContent = tiltLabels[state.radarTilt] || '0.5°';
+  }
+
+  // Show tilt selector only in Single Site IEM mode for REFL/VEL/SRV
+  const canShowTilt = state.radarMode === 'single' && 
+                      state.radarSource === 'iem' && 
+                      ['N0Q', 'N0U', 'N0S'].includes(product);
+  
+  if (canShowTilt) {
+    document.getElementById('tilt-control-toolbar')?.classList.remove('hidden');
+  } else {
+    document.getElementById('tilt-control-toolbar')?.classList.add('hidden');
+  }
   
   // Site ID
   if (state.radarMode === 'single' && state.radarSite) {
@@ -218,19 +251,20 @@ export function updateRadarMetadataUI() {
   }
 
   // Provider
-  const source = state.radarSource || 'iem';
-  const providers = {
-    'iem': 'NEXRAD via IEM',
-    'rainviewer': 'RainViewer',
-    'nowcoast': 'NOAA nowCOAST'
-  };
-  provEl.textContent = providers[source] || source;
+  const source = state.radarSource;
+  if (state.radarMode === 'single' || source === 'iem') {
+    provEl.textContent = 'NWS via IEM';
+  } else if (source === 'rainviewer') {
+    provEl.textContent = 'RainViewer';
+  } else {
+    provEl.textContent = 'NOAA nowCOAST';
+  }
 
   // Time
   if (state.targetTime) {
     const ts = getIEMTimestamp(state.targetTime);
     timeEl.textContent = ts ? `${ts.substring(8, 10)}:${ts.substring(10, 12)}Z` : 'Archive';
   } else {
-    timeEl.textContent = 'LIVE (Real-time)';
+    timeEl.textContent = `${getLiveTimestampDisplay()} (Live)`;
   }
 }

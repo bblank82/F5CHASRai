@@ -5,7 +5,12 @@ const defaultUIState = {
   archive: { mode: 'live', date: '', time: '' },
   accordion: 'acc-instability',
   position: { userLat: null, userLon: null },
-  radarOpacity: 0.9
+  radarOpacity: 0.9,
+  basemapContrast: 1.0,
+  basemapLabelsBrightness: 1.0,
+  radarTilt: '0',
+  alertFilters: ['Tornado Warning', 'Severe Thunderstorm Warning', 'Severe Weather Statement', 'Tornado Watch', 'Severe Thunderstorm Watch', 'Flash Flood Warning'],
+  basemapId: 'dark'
 };
 
 export const uiState = (() => {
@@ -44,8 +49,13 @@ export const state = {
   radarMode: 'composite',
   radarSite: null,
   radarProduct: 'N0Q',
+  radarTilt: uiState.radarTilt,
   radarSource: localStorage.getItem('radar_source') || 'iem',
   radarOpacity: uiState.radarOpacity,
+  basemapContrast: uiState.basemapContrast,
+  basemapLabelsBrightness: uiState.basemapLabelsBrightness,
+  alertFilters: uiState.alertFilters,
+  basemapId: uiState.basemapId || 'dark',
   lastRainViewerHash: null,
   targetTime: null, // null = Live Mode
   stormTrack: null,
@@ -59,15 +69,51 @@ export function setRadarOpacity(val) {
   saveUIState();
 }
 
+export function setBasemapContrast(val) {
+  state.basemapContrast = val;
+  uiState.basemapContrast = val;
+  saveUIState();
+}
+
+export function setBasemapLabelsBrightness(val) {
+  state.basemapLabelsBrightness = val;
+  uiState.basemapLabelsBrightness = val;
+  saveUIState();
+}
+
+export function setRadarTilt(val) {
+  state.radarTilt = val;
+  uiState.radarTilt = val;
+  saveUIState();
+}
+
+export function setAlertFilters(filters) {
+  state.alertFilters = filters;
+  uiState.alertFilters = filters;
+  saveUIState();
+}
+
+export function setBasemap(id) {
+  state.basemapId = id;
+  uiState.basemapId = id;
+  saveUIState();
+}
+
 export function setRadarSource(s) {
   state.radarSource = s;
   localStorage.setItem('radar_source', s);
 }
 
-export function setLocation(lat, lon) {
+export function setLocation(lat, lon, isManual = false) {
   state.userLat = lat;
   state.userLon = lon;
-  uiState.position = { userLat: lat, userLon: lon };
+  
+  if (isManual) {
+    uiState.position = { userLat: lat, userLon: lon };
+  } else {
+    // If it's GPS, we keep the manual override as is (usually null if following GPS)
+    // but the system state (state.userLat) reflects the active position.
+  }
   saveUIState();
 }
 
