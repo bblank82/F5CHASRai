@@ -6,7 +6,7 @@ import { initCounties } from './counties.js';
 import { markConditionsStale, fetchConditions } from './conditions.js';
 import { fetchNearbyRoads } from './roads.js';
 
-let map, userMarker, trackLayer, alertLayer, spcLayer, radarLayer, countiesLayer;
+let map, userMarker, trackLayer, alertLayer, spcLayer, radarLayer, countiesLayer, userPointsLayer;
 let layerVisibility = uiState.layers;
 let isPickingLocation = false;
 let isPickingStormCenter = false;
@@ -41,10 +41,14 @@ export function initMap() {
   alertLayer = L.layerGroup();
   spcLayer = L.layerGroup();
   radarLayer = L.layerGroup();
+  userPointsLayer = L.layerGroup();
 
   if (layerVisibility.track) trackLayer.addTo(map);
   if (layerVisibility.alerts) alertLayer.addTo(map);
   if (layerVisibility.spc) spcLayer.addTo(map);
+  if (layerVisibility.points) userPointsLayer.addTo(map);
+
+  renderUserPoints();
 
   // Initialize county highlights (deferred to show on map according to state)
   initCounties(map).then(layer => {
@@ -426,6 +430,7 @@ export function setLayerVisibility(layer, isVisible) {
   if (layer === 'spc') isVisible ? map.addLayer(spcLayer) : map.removeLayer(spcLayer);
   if (layer === 'alerts') isVisible ? map.addLayer(alertLayer) : map.removeLayer(alertLayer);
   if (layer === 'track') isVisible ? map.addLayer(trackLayer) : map.removeLayer(trackLayer);
+  if (layer === 'points') isVisible ? map.addLayer(userPointsLayer) : map.removeLayer(userPointsLayer);
   if (layer === 'counties' && countiesLayer) isVisible ? map.addLayer(countiesLayer) : map.removeLayer(countiesLayer);
   if (layer === 'radar') {
     const legend = document.getElementById('radar-legend');
@@ -453,6 +458,45 @@ function setupLayerToggles() {
       if (btn.hasAttribute('disabled')) return;
       const current = uiState.layers?.[layer] ?? false;
       setLayerVisibility(layer, !current);
+    });
+  });
+}
+
+export function renderUserPoints() {
+  if (!userPointsLayer) return;
+  userPointsLayer.clearLayers();
+
+  if (!uiState.layers.points) return;
+
+  uiState.userPointGroups.forEach(group => {
+    // Only render if group is visible and has data
+    if (!group.visible || !group.raw) return;
+    
+    const lines = group.raw.split('\n');
+    lines.forEach(line => {
+      const parts = line.split(',').map(s => s.trim());
+      if (parts.length >= 2) {
+        const lat = parseFloat(parts[0]);
+        const lon = parseFloat(parts[1]);
+        const label = parts[2] || '';
+
+        if (!isNaN(lat) && !isNaN(lon)) {
+          const icon = L.divIcon({
+            className: 'custom-pin-marker',
+            html: `
+              <div class="pin-head" style="background: ${group.color || '#f59e0b'}"></div>
+              <div class="pin-stem"></div>
+              ${label ? `<div class="custom-pin-label">${label}</div>` : ''}
+            `,
+            iconSize: [20, 30],
+            iconAnchor: [10, 30]
+          });
+
+          L.marker([lat, lon], { icon })
+            .bindPopup(`<strong>${group.name}</strong><br>${label || 'No Label'}<br><small>${lat.toFixed(4)}, ${lon.toFixed(4)}</small>`)
+            .addTo(userPointsLayer);
+        }
+      }
     });
   });
 }

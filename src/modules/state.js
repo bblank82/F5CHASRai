@@ -1,5 +1,5 @@
 const defaultUIState = {
-  layers: { spc: true, alerts: true, track: true, radar: false, counties: true },
+  layers: { spc: true, alerts: true, track: true, radar: false, counties: true, points: true },
   mapBounds: { center: [37.5, -98.5], zoom: 6 },
   panels: { trackCollapsed: false, chatCollapsed: false },
   archive: { mode: 'live', date: '', time: '' },
@@ -10,7 +10,8 @@ const defaultUIState = {
   basemapLabelsBrightness: 1.0,
   radarTilt: '0',
   alertFilters: ['Tornado Warning', 'Severe Thunderstorm Warning', 'Severe Weather Statement', 'Tornado Watch', 'Severe Thunderstorm Watch', 'Flash Flood Warning'],
-  basemapId: 'dark'
+  basemapId: 'dark',
+  userPointGroups: []
 };
 
 export const uiState = (() => {
@@ -23,7 +24,12 @@ export const uiState = (() => {
         archive: { ...defaultUIState.archive, ...(saved.archive || {}) },
         position: { ...defaultUIState.position, ...(saved.position || {}) },
         layers: { ...defaultUIState.layers, ...(saved.layers || {}) },
-        mapBounds: { ...defaultUIState.mapBounds, ...(saved.mapBounds || {}) }
+        mapBounds: { ...defaultUIState.mapBounds, ...(saved.mapBounds || {}) },
+        userPointGroups: (saved.userPointGroups || []).map(g => ({
+          color: '#f59e0b',
+          visible: true,
+          ...g
+        }))
       };
     }
   } catch (e) {}
@@ -63,6 +69,7 @@ export const state = {
   stormTrack: null,
   chatHistory: [],
   chaseLog: JSON.parse(localStorage.getItem('chase_log') || '[]'),
+  userPointGroups: uiState.userPointGroups,
 };
 
 export function setRadarOpacity(val) {

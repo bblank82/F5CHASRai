@@ -2511,3 +2511,240 @@ body.archive-mode .accordion-item .accordion-header {
 .custom-confirm-btn.confirm:active {
   transform: translateY(0);
 }
+/* ===== CUSTOM MAP POINTS ===== */
+.custom-points-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 10px 0;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.point-group-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.point-group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.point-group-name-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 12px;
+  outline: none;
+  padding: 2px 0;
+}
+
+.point-group-name-input:focus {
+  border-bottom-color: var(--accent);
+}
+
+.point-group-raw-input {
+  width: 100%;
+  min-height: 80px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 8px;
+  resize: vertical;
+  line-height: 1.4;
+}
+
+.point-group-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.point-group-btn-sm {
+  padding: 2px 8px;
+  font-size: 10px;
+  border-radius: 4px;
+}
+
+/* Custom Marker Styles */
+.custom-pin-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-pin-icon {
+  font-size: 20px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+  cursor: pointer;
+}
+
+.custom-pin-label {
+  background: rgba(10, 10, 15, 0.85);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--border-accent);
+  color: var(--text-primary);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  margin-top: -4px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ===== REFACTORED POINTS UI ===== */
+.points-accordion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.point-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.point-list-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.point-list-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.point-list-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 5px rgba(0,0,0,0.5);
+}
+
+.point-list-name {
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+
+.point-list-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.point-list-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  border-radius: 4px;
+}
+
+.point-list-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.05);
+}
+
+.point-list-btn.active {
+  color: var(--accent);
+}
+
+/* Colorable CSS Pin Marker */
+.custom-pin-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform-origin: bottom center;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));
+}
+
+.pin-head {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--pin-color, var(--accent));
+  border: 2px solid #fff;
+  position: relative;
+  z-index: 2;
+}
+
+.pin-stem {
+  width: 2px;
+  height: 6px;
+  background: #fff;
+  margin-top: -1px;
+  position: relative;
+  z-index: 1;
+}
+
+.custom-pin-label {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 800;
+  white-space: nowrap;
+  margin-top: 4px;
+  border: 1px solid rgba(255,255,255,0.1);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.point-group-raw-input {
+  width: 100%;
+  min-height: 150px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 10px;
+  resize: vertical;
+}

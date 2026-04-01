@@ -75,6 +75,7 @@
         <button class="layer-toggle active" data-layer="spc" id="toggle-spc">SPC Outlook</button>
         <button class="layer-toggle active" data-layer="alerts" id="toggle-alerts">NWS</button>
         <button class="layer-toggle active" data-layer="track" id="toggle-track">Storm Track</button>
+        <button class="layer-toggle active" data-layer="points" id="toggle-points">Points</button>
         <button class="layer-toggle" data-layer="radar" id="toggle-radar">Radar</button>
         <div id="radar-controls" class="toolbar-sub-group hidden">
           <select id="radar-mode-select" class="toolbar-select">
@@ -274,6 +275,16 @@
               </select>
             </div>
           </div>
+          <div class="panel-section-divider" style="margin: 8px 0; border-top: 1px solid var(--border); opacity: 0.5;"></div>
+          <div class="panel-control-group">
+            <div class="control-header-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span class="control-label" style="font-size:9px; letter-spacing:0.1em; color:var(--text-muted);">CUSTOM POINT GROUPS</span>
+              <button id="add-point-group-btn" class="icon-btn-sm" title="Add New Group" style="width:20px; height:20px; padding:0; font-size:14px;">+</button>
+            </div>
+            <div id="points-accordion-list" class="points-accordion-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
         </div>
       </div>
 
@@ -342,9 +353,6 @@
           </div>
           <div id="model-status" class="key-status"></div>
         </div>
-        <div class="setting-group">
-          <label>Manual Location Override</label>
-          <p class="setting-desc">Set your position manually if GPS is unavailable.</p>
           <div class="location-input-row">
             <input type="number" id="manual-lat" placeholder="Latitude (35.46)" step="0.001" />
             <input type="number" id="manual-lon" placeholder="Longitude (-97.52)" step="0.001" />
@@ -389,6 +397,38 @@
       </div>
       <div class="modal-body">
         <div id="alert-modal-content" class="alert-detail-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="points-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Point Group">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card">
+      <div class="modal-header">
+        <span id="points-modal-title">📍 User Point Group</span>
+        <button class="modal-close-btn" id="points-modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-group">
+          <label>Group Name</label>
+          <input type="text" id="points-group-name-input" placeholder="e.g., Radar Bases" />
+        </div>
+        <div class="setting-group">
+          <label>Marker Color</label>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <input type="color" id="points-group-color-input" value="#f59e0b" style="width:40px; height:34px; background:transparent; border:none; cursor:pointer;" />
+            <span class="setting-desc" style="margin:0;">Select pin color for this group</span>
+          </div>
+        </div>
+        <div class="setting-group">
+          <label>Coordinates (CSV)</label>
+          <p class="setting-desc">Format: <code>lat, lon, label</code> (one per line)</p>
+          <textarea id="points-group-raw-input" class="point-group-raw-input" placeholder="35.46, -97.52, OKC Base"></textarea>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
+          <button id="points-delete-btn" class="action-btn danger-action-btn">Delete Group</button>
+          <button id="points-save-btn" class="action-btn">Save List</button>
+        </div>
       </div>
     </div>
   </div>
