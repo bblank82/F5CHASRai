@@ -498,11 +498,11 @@ export function renderUserPoints() {
           const icon = L.divIcon({
             className: 'custom-dot-marker',
             html: `
-              <div class="marker-dot-inner" style="background: ${group.color || '#f59e0b'}"></div>
+              <div class="marker-dot-inner" style="--dot-color: ${group.color || '#f59e0b'}"></div>
               ${label ? `<div class="custom-dot-label">${label}</div>` : ''}
             `,
-            iconSize: [20, 20],
-            iconAnchor: [10, 10]
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
           });
 
           L.marker([lat, lon], { icon })
