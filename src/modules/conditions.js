@@ -1,5 +1,6 @@
-// modules/instability.js — Open-Meteo atmospheric sounding data
+// modules/conditions.js — Open-Meteo atmospheric sounding data
 import { state, addLogEntry } from './state.js';
+import { reverseGeocode } from './geocoding.js';
 
 const OM_BASE = 'https://api.open-meteo.com/v1/forecast';
 
@@ -14,28 +15,61 @@ const THRESHOLDS = {
   pwat:      [0.8, 1.2, 1.6, 2.0],      // in
 };
 
-export function initInstabilityPanel() {
+export function initConditionsPanel() {
   // Listener is delegated or re-bound on render since we render the button dynamically now
   document.getElementById('sounding-grid').addEventListener('click', (e) => {
-    if (e.target && e.target.id === 'refresh-instability') {
-      fetchInstability();
+    if (e.target && e.target.id === 'refresh-conditions') {
+      fetchConditions();
     }
   });
 }
 
-export async function fetchInstability(lat, lon) {
-  const btn = document.getElementById('refresh-instability');
-  btn && btn.classList.add('spinning');
+/**
+ * Immediately clears the conditions panel and shows a loading state for a new location.
+ */
+export async function markConditionsStale(lat, lon) {
+  const grid = document.getElementById('sounding-grid');
+  if (!grid) return;
 
+  // Initial fast raw coordinate display (Stacked)
+  grid.innerHTML = `
+    <div class="loading-state">
+      <div class="mini-spinner"></div>
+      <div class="loading-message">
+        <div style="font-size: 11px; opacity: 0.7;">Acquiring conditions for:</div>
+        <div class="loading-location" style="margin: 4px 0;">${lat.toFixed(3)}, ${lon.toFixed(3)}</div>
+        <div class="loading-address" style="font-size: 12px; font-weight: 500; color: var(--accent);">Fetching location...</div>
+      </div>
+    </div>
+  `;
+
+  // Try to get city/state name for richer context
+  const locationName = await reverseGeocode(lat, lon);
+  if (locationName) {
+    const addrEl = grid.querySelector('.loading-address');
+    if (addrEl) addrEl.textContent = locationName;
+  }
+}
+
+export async function fetchConditions(lat, lon) {
+  const btn = document.getElementById('refresh-conditions');
+  
   const targetLat = lat || state.userLat || 35.5;
   const targetLon = lon || state.userLon || -97.5;
+
+  // Immediately clear and show loading if coordinates are provided
+  if (lat && lon) {
+    markConditionsStale(lat, lon);
+  }
+
+  btn && btn.classList.add('spinning');
 
   if (state.targetTime) {
     const grid = document.getElementById('sounding-grid');
     if (grid) grid.innerHTML = `
       <div class="archive-disabled-state">
         <span>🕒 Archive Mode Active</span>
-        <p>Instability data (RAP/HRRR) is currently only available for Live mode.</p>
+        <p>Atmospheric data (RAP/HRRR) is currently only available for Live mode.</p>
       </div>`;
     btn && btn.classList.remove('spinning');
     return null;
@@ -94,14 +128,14 @@ export async function fetchInstability(lat, lon) {
     const temp = reading.dewpoint + (reading.li > 0 ? reading.li : 5); // Rough proxy for T
     reading.lcl = 125 * (temp - reading.dewpoint);
 
-    state.instabilityData = reading;
-    renderInstabilityPanel(reading, targetLat, targetLon);
+    state.conditionsData = reading;
+    renderConditionsPanel(reading, targetLat, targetLon);
 
-    addLogEntry('system', `Instability data updated — CAPE: ${Math.round(reading.cape ?? 0)} J/kg, Shear: ${Math.round(reading.shear_06 ?? 0)} kt`);
+    addLogEntry('system', `Conditions data updated — CAPE: ${Math.round(reading.cape ?? 0)} J/kg, Shear: ${Math.round(reading.shear_06 ?? 0)} kt`);
     return reading;
   } catch (err) {
-    console.error('Instability fetch failed:', err);
-    document.getElementById('sounding-grid').innerHTML = `<div class="loading-state text-danger">Instability data unavailable: ${err.message}</div>`;
+    console.error('Conditions fetch failed:', err);
+    document.getElementById('sounding-grid').innerHTML = `<div class="loading-state text-danger">Atmospheric data unavailable: ${err.message}</div>`;
     return null;
   } finally {
     btn && btn.classList.remove('spinning');
@@ -145,7 +179,7 @@ function liColor(li) {
   return 'var(--success)';
 }
 
-function renderInstabilityPanel(r, lat, lon) {
+function renderConditionsPanel(r, lat, lon) {
   const grid = document.getElementById('sounding-grid');
   if (!grid) return;
 
@@ -209,7 +243,7 @@ function renderInstabilityPanel(r, lat, lon) {
         <span style="font-size: 10px; color: var(--text-muted);">
           Data as of: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </span>
-        <button class="refresh-btn" id="refresh-instability" title="Refresh">↻</button>
+        <button class="refresh-btn" id="refresh-conditions" title="Refresh">↻</button>
       </div>
     </div>
   `;
@@ -276,9 +310,9 @@ function getValColor(val, t) {
   return 'var(--success)';
 }
 
-export function getInstabilityContext() {
-  const r = state.instabilityData;
-  if (!r) return 'No instability data available.';
+export function getConditionsContext() {
+  const r = state.conditionsData;
+  if (!r) return 'No atmospheric conditions data available.';
   return `Current atmospheric profile:
 - CAPE: ${fmt(r.cape, ' J/kg')} (${r.cape >= 3000 ? 'Extreme' : r.cape >= 1500 ? 'High' : r.cape >= 500 ? 'Moderate' : 'Low'})
 - 0-6km Bulk Shear: ${fmt(r.shear_06, ' kt')} (${r.shear_06 >= 50 ? 'Supercell favorable' : r.shear_06 >= 35 ? 'Organized convection' : 'Weak'})

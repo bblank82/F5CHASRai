@@ -190,6 +190,16 @@ export const RADAR_LEGENDS = {
     title: 'Echo Tops (kft)',
     colors: ['#000080', '#0000ff', '#00ffff', '#00ff00', '#ffff00', '#ff0000'],
     labels: ['10', '30', '50+']
+  },
+  'NCR': {
+    title: 'Composite Refl (dBZ)',
+    colors: ['#00e4ff', '#0096ff', '#00c800', '#00a000', '#f0f000', '#e87000', '#ff0000', '#c80000', '#ff00ff'],
+    labels: ['Light', 'Moderate', 'Heavy']
+  },
+  'N0B': {
+    title: 'Super-Res Refl (dBZ)',
+    colors: ['#00e4ff', '#0096ff', '#00c800', '#00a000', '#f0f000', '#e87000', '#ff0000', '#c80000', '#ff00ff'],
+    labels: ['Light', 'Moderate', 'Heavy']
   }
 };
 
@@ -207,14 +217,22 @@ export function updateRadarMetadataUI() {
   if (!prodEl) return;
 
   const prodNames = {
-    'N0Q': 'Reflectivity',
+    'N0Q': 'Reflectivity (Digital)',
+    'N0B': 'Reflectivity (Super-Res)',
     'N0U': 'Velocity (Base)',
     'N0S': 'Rel. Velocity',
-    'NET': 'Echo Tops'
+    'NET': 'Echo Tops',
+    'NCR': 'Composite Refl'
   };
 
-  const product = state.radarProduct || 'N0Q';
+  const product = state.radarProduct || 'N0B';
   prodEl.textContent = prodNames[product] || product;
+
+  // Show HD badge for Super-Res (N0B)
+  const hdBadge = document.getElementById('radar-hd-badge');
+  if (hdBadge) {
+    hdBadge.classList.toggle('hidden', product !== 'N0B');
+  }
   
   // Tilt Logic
   const tiltLabels = {

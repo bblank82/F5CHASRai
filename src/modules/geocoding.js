@@ -21,11 +21,11 @@ export async function reverseGeocode(lat, lon) {
     
     if (data && data.address) {
       const addr = data.address;
-      // Preference: city -> town -> village -> hamlet -> suburb
+      // Preference: city -> town -> village -> hamlet -> suburb -> county
       const city = addr.city || addr.town || addr.village || addr.hamlet || addr.suburb || '';
+      const county = addr.county || '';
       
       // State code (e.g. OK, TX)
-      // Nominatim usually provides 'ISO3166-2-lvl4' like "US-OK"
       let state = '';
       if (addr['ISO3166-2-lvl4']) {
         const parts = addr['ISO3166-2-lvl4'].split('-');
@@ -40,8 +40,12 @@ export async function reverseGeocode(lat, lon) {
       let result = '';
       if (city && state) {
         result = `near ${city}, ${state}`;
+      } else if (county && state) {
+        result = `near ${county}, ${state}`;
       } else if (city) {
         result = `near ${city}`;
+      } else if (county) {
+        result = `near ${county}`;
       } else if (state) {
         result = `in ${state}`;
       }

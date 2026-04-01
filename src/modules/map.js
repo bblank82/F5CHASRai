@@ -3,6 +3,8 @@ import { state, setLocation, addLogEntry, uiState, saveUIState, setRadarSource, 
 import { reverseGeocode } from './geocoding.js';
 import { findNearestStation, getRadarTileUrl, getCompositeTileUrl, RADAR_LEGENDS, updateRadarMetadataUI } from './radar.js';
 import { initCounties } from './counties.js';
+import { markConditionsStale, fetchInstability } from './instability.js';
+import { fetchNearbyRoads } from './roads.js';
 
 let map, userMarker, trackLayer, alertLayer, spcLayer, radarLayer, countiesLayer;
 let layerVisibility = uiState.layers;
@@ -130,6 +132,12 @@ function requestGeolocation() {
       
       // If we don't have a manual override in uiState, let watchPosition update state
       if (uiState.position.userLat === null) {
+        // If movement is significant (> 0.01 deg ~= 1km), clear conditions panel
+        if (state.userLat && (Math.abs(state.userLat - lat) > 0.01 || Math.abs(state.userLon - lon) > 0.01)) {
+          markConditionsStale(lat, lon);
+          fetchInstability(lat, lon);
+          fetchNearbyRoads(lat, lon);
+        }
         setLocation(lat, lon, false);
         updateUserMarker(lat, lon);
         updateLocationDisplay(lat, lon);
@@ -184,6 +192,9 @@ function refreshRadarSiteFromLocation(lat, lon) {
 
 export function setManualLocation(lat, lon) {
   setLocation(lat, lon, true); // true = isManual
+  markConditionsStale(lat, lon); // Clear UI immediately with new location
+  fetchInstability(lat, lon); // Trigger fresh data fetch
+  fetchNearbyRoads(lat, lon); // Trigger road network refresh
   updateUserMarker(lat, lon);
   map.setView([lat, lon], 8);
   updateLocationDisplay(lat, lon, 'manual');
@@ -457,8 +468,8 @@ export async function addRadarOverlay() {
   if (state.radarMode === 'single' && state.radarSite) {
     let p = state.radarProduct;
     // Apply tilt if applicable to IEM product codes (N0Q, N0U, N0S)
-    if (state.radarTilt && state.radarTilt !== '0' && (p === 'N0Q' || p === 'N0U' || p === 'N0S')) {
-      p = state.radarTilt + p.substring(1);
+    if (state.radarTilt && state.radarTilt !== '0' && (p === 'N0Q' || p === 'N0B' || p === 'N0U' || p === 'N0S')) {
+      p = 'N' + state.radarTilt + p.substring(2);
     }
     rs = getRadarTileUrl(state.radarSite, p);
   } else {
@@ -492,6 +503,16 @@ export async function addRadarOverlay() {
   }
   
   radarTiles.addTo(radarLayer);
+
+  // Diagnostic: Log provider-side outages (like the current KCLE 503s)
+  radarTiles.on('tileerror', (error) => {
+    if (!state.lastRadarError || Date.now() - state.lastRadarError > 30000) {
+      state.lastRadarError = Date.now();
+      const site = state.radarMode === 'single' ? (state.radarSite || 'Unknown') : 'Composite';
+      addLogEntry('system', `Radar Down: Data feed for ${site} is currently unreachable at the provider.`);
+    }
+  });
+
   updateRadarLegend(state.radarProduct);
   updateRadarMetadataUI();
 
@@ -741,15 +762,28 @@ function applyLabelsFilter(val) {
 
 function syncRadarControlsUI() {
   const sourceSelect = document.getElementById('radar-source-select');
+  const productBtns = document.querySelectorAll('#radar-product-btns .prod-btn');
   const prod = state.radarProduct;
   const mode = state.radarMode;
 
+  // Update visibility: only show secondary products in Single Site mode
+  productBtns.forEach(btn => {
+    const p = btn.dataset.prod;
+    if (p === 'N0B' || p === 'N0Q') {
+      // REFL always visible
+      btn.classList.remove('hidden');
+    } else {
+      // Other products (VEL, SRV, TOPS, CREF) only in Single Site
+      btn.classList.toggle('hidden', mode === 'composite');
+    }
+  });
+
   // RainViewer and NowCOAST are composite-reflectivity-only
   // So disable source select if in single site mode OR if selecting velocity products.
-  const allowSourceSelect = mode === 'composite' && (prod === 'N0Q' || prod === 'NET');
+  const allowSourceSelect = mode === 'composite' && (prod === 'N0Q' || prod === 'N0B' || prod === 'NET');
   if (sourceSelect) {
     sourceSelect.disabled = !allowSourceSelect;
-    sourceSelect.title = allowSourceSelect ? 'Select radar provider' : 'Secondary sources unavailable for this product/mode';
+    sourceSelect.title = allowSourceSelect ? 'Select radar provider' : 'Common sources unavailable for this product/mode';
     if (!allowSourceSelect) sourceSelect.value = 'iem';
   }
 }

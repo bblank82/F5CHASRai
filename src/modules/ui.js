@@ -1,5 +1,5 @@
 /**
- * StormTracker UI Utilities
+ * F5CHASRai UI Utilities
  * Custom, non-blocking replacements for native confirm() and alert()
  */
 

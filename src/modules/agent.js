@@ -4,7 +4,7 @@ import { getInstabilityContext } from './instability.js';
 import { getThreatContext } from './threat.js';
 import { getRoadContext } from './roads.js';
 
-const SYSTEM_PROMPT = `You are an expert storm chasing meteorologist and field chase coordinator AI. Your job is to assist active storm chasers in real-time with meteorological analysis, safety decisions, intercept strategy, and route planning.
+const SYSTEM_PROMPT = `You are the F5CHASRai expert storm chasing meteorologist and field chase coordinator AI. Your job is to assist active storm chasers in real-time with meteorological analysis, safety decisions, intercept strategy, and route planning.
 
 Your expertise includes:
 - Supercell thunderstorm structure and tornado meteorology

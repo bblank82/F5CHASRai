@@ -1,9 +1,9 @@
-// main.js — Storm Chaser App Entry Point
+// main.js — F5CHASRai App Entry Point
 import './style.css';
 import { initMap, centerOnUser, toggleLocationPicker, toggleStormPicker, isPicking, renderStormTrack, getBailoutLink, addRadarOverlay } from './modules/map.js';
 import { fetchAlerts } from './modules/alerts.js';
 import { initSPC, fetchSPCOutlook } from './modules/spc.js';
-import { fetchInstability } from './modules/instability.js';
+import { fetchConditions, initConditionsPanel } from './modules/conditions.js';
 import { fetchNearbyRoads } from './modules/roads.js';
 import { computeThreatScore } from './modules/threat.js';
 import { initAgent, updateModelBadge } from './modules/agent.js';
@@ -15,7 +15,7 @@ import { state, uiState, saveUIState } from './modules/state.js';
 
 // ===== BOOT =====
 async function init() {
-  console.log('⚡ Storm Chaser Agent initializing…');
+  console.log('⚡ F5CHASRai Agent initializing…');
 
   // Init map first (needs DOM)
   initMap();
@@ -25,6 +25,7 @@ async function init() {
     { name: 'Settings', fn: initSettings },
     { name: 'Log', fn: initLog },
     { name: 'SPC', fn: initSPC },
+    { name: 'Conditions', fn: initConditionsPanel },
     { name: 'StormTrack', fn: initStormTrackPanel },
     { name: 'Bailout', fn: initBailoutButton },
     { name: 'CenterButton', fn: initCenterButton },
@@ -49,8 +50,8 @@ async function init() {
   await fetchAlerts();
   computeThreatScore();
 
-  // Fetch instability once location is available (or default)
-  waitForLocationThenFetchInstability();
+  // Fetch conditions once location is available (or default)
+  waitForLocationThenFetchConditions();
 
   // Init AI agent last (after data is loaded so context is rich)
   setTimeout(() => initAgent(), 500);
@@ -59,26 +60,26 @@ async function init() {
   setInterval(async () => {
     await fetchAlerts();
     if (state.userLat && state.userLon) {
-      fetchInstability(state.userLat, state.userLon);
+      fetchConditions(state.userLat, state.userLon);
     }
     computeThreatScore();
   }, 5 * 60 * 1000);
 
   setInterval(() => {
-    if (state.userLat) fetchInstability(state.userLat, state.userLon);
+    if (state.userLat) fetchConditions(state.userLat, state.userLon);
   }, 10 * 60 * 1000); // Every 10 minutes
 
-  // Refresh instability button
-  document.getElementById('refresh-instability').addEventListener('click', () => {
-    fetchInstability(state.userLat, state.userLon);
+  // Refresh conditions button
+  document.getElementById('refresh-conditions').addEventListener('click', () => {
+    fetchConditions(state.userLat, state.userLon);
   });
   document.getElementById('refresh-alerts').addEventListener('click', async () => {
     await fetchAlerts();
     computeThreatScore();
   });
 
-  addLogEntry('system', '⚡ Storm Chaser Agent initialized. All systems online.');
-  console.log('✅ Storm Chaser Agent ready');
+  addLogEntry('system', '⚡ F5CHASRai Agent initialized. All systems online.');
+  console.log('✅ F5CHASRai Agent ready');
 }
 
 async function refreshAllData() {
@@ -86,10 +87,10 @@ async function refreshAllData() {
   await fetchAlerts();
   await fetchSPCOutlook();
   if (!state.targetTime && state.userLat) {
-    await fetchInstability(state.userLat, state.userLon);
+    await fetchConditions(state.userLat, state.userLon);
     await fetchNearbyRoads(state.userLat, state.userLon);
   } else if (state.targetTime) {
-    // Instability is disabled in archive mode
+    // Conditions are disabled in archive mode
   }
   addRadarOverlay(); // Refresh radar with new time
   computeThreatScore();
@@ -264,7 +265,7 @@ function initResetGpsButton() {
       // Refresh context-sensitive data after a short delay (enough for lock)
       setTimeout(() => {
         if (state.userLat) {
-          fetchInstability(state.userLat, state.userLon);
+          fetchConditions(state.userLat, state.userLon);
         }
         fetchAlerts();
       }, 1500);
