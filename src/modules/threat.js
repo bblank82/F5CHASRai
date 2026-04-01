@@ -14,9 +14,9 @@ export function computeThreatScore() {
   const alerts = state.activeAlerts || [];
   const hasTorWarning = alerts.some(f => /tornado warning/i.test(f.properties.event));
   const hasSvrWarning = alerts.some(f => /severe thunderstorm warning/i.test(f.properties.event));
-  const hasTorWatch   = alerts.some(f => /tornado watch/i.test(f.properties.event));
-  const hasSvrWatch   = alerts.some(f => /severe thunderstorm watch/i.test(f.properties.event));
-  const hasPDS        = alerts.some(f => /particularly dangerous situation/i.test((f.properties.headline || '') + (f.properties.description || '')));
+  const hasTorWatch = alerts.some(f => /tornado watch/i.test(f.properties.event));
+  const hasSvrWatch = alerts.some(f => /severe thunderstorm watch/i.test(f.properties.event));
+  const hasPDS = alerts.some(f => /particularly dangerous situation/i.test((f.properties.headline || '') + (f.properties.description || '')));
 
   if (hasTorWarning) score += hasPDS ? 5 : 4;
   else if (hasSvrWarning) score += 3;
@@ -24,7 +24,7 @@ export function computeThreatScore() {
   else if (hasSvrWatch) score += 1;
 
   // 2. CAPE component (0–2 pts)
-  const inst = state.instabilityData;
+  const inst = state.conditionsData;
   if (inst) {
     const cape = inst.cape || 0;
     if (cape >= 3000) score += 2;

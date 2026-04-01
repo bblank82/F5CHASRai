@@ -3,7 +3,7 @@ import { state, setLocation, addLogEntry, uiState, saveUIState, setRadarSource, 
 import { reverseGeocode } from './geocoding.js';
 import { findNearestStation, getRadarTileUrl, getCompositeTileUrl, RADAR_LEGENDS, updateRadarMetadataUI } from './radar.js';
 import { initCounties } from './counties.js';
-import { markConditionsStale, fetchInstability } from './instability.js';
+import { markConditionsStale, fetchConditions } from './conditions.js';
 import { fetchNearbyRoads } from './roads.js';
 
 let map, userMarker, trackLayer, alertLayer, spcLayer, radarLayer, countiesLayer;
@@ -45,7 +45,7 @@ export function initMap() {
   if (layerVisibility.track) trackLayer.addTo(map);
   if (layerVisibility.alerts) alertLayer.addTo(map);
   if (layerVisibility.spc) spcLayer.addTo(map);
-  
+
   // Initialize county highlights (deferred to show on map according to state)
   initCounties(map).then(layer => {
     countiesLayer = layer;
@@ -112,7 +112,7 @@ function requestGeolocation() {
     locText.textContent = 'GPS unavailable';
     return;
   }
-  
+
   // Basic one-shot to get initial position fast
   navigator.geolocation.getCurrentPosition((pos) => {
     // Only if not already set by manual override
@@ -123,19 +123,19 @@ function requestGeolocation() {
       updateLocationDisplay(lat, lon);
       refreshRadarSiteFromLocation(lat, lon);
     }
-  }, () => {}, { enableHighAccuracy: true });
+  }, () => { }, { enableHighAccuracy: true });
 
   navigator.geolocation.watchPosition(
     (pos) => {
       const lat = pos.coords.latitude;
       const lon = pos.coords.longitude;
-      
+
       // If we don't have a manual override in uiState, let watchPosition update state
       if (uiState.position.userLat === null) {
         // If movement is significant (> 0.01 deg ~= 1km), clear conditions panel
         if (state.userLat && (Math.abs(state.userLat - lat) > 0.01 || Math.abs(state.userLon - lon) > 0.01)) {
           markConditionsStale(lat, lon);
-          fetchInstability(lat, lon);
+          fetchConditions(lat, lon);
           fetchNearbyRoads(lat, lon);
         }
         setLocation(lat, lon, false);
@@ -143,7 +143,7 @@ function requestGeolocation() {
         updateLocationDisplay(lat, lon);
         refreshRadarSiteFromLocation(lat, lon);
       }
-      
+
       document.getElementById('location-icon').textContent = '📍';
       document.getElementById('location-status-badge').classList.remove('badge-warning');
       document.getElementById('location-status-badge').classList.add('badge-neutral');
@@ -193,7 +193,7 @@ function refreshRadarSiteFromLocation(lat, lon) {
 export function setManualLocation(lat, lon) {
   setLocation(lat, lon, true); // true = isManual
   markConditionsStale(lat, lon); // Clear UI immediately with new location
-  fetchInstability(lat, lon); // Trigger fresh data fetch
+  fetchConditions(lat, lon); // Trigger fresh data fetch
   fetchNearbyRoads(lat, lon); // Trigger road network refresh
   updateUserMarker(lat, lon);
   map.setView([lat, lon], 8);
@@ -206,10 +206,10 @@ async function updateLocationDisplay(lat, lon, suffix = '') {
   const locText = document.getElementById('location-text');
   const baseCoords = `${lat.toFixed(3)}, ${lon.toFixed(3)}`;
   const suffixStr = suffix ? ` (${suffix})` : '';
-  
+
   // Show base coords immediately
   locText.textContent = `${baseCoords}${suffixStr}`;
-  
+
   // Fetch city info
   const cityInfo = await reverseGeocode(lat, lon);
   if (cityInfo) {
@@ -235,13 +235,13 @@ export function centerOnUser(forceGPS = false) {
     }
 
     if (locText) locText.textContent = 'Locating (GPS)...';
-    
+
     // Request a fresh update, but allow a reasonable cache (30s) for instant return
     // if the background watchPosition just got a hit.
     navigator.geolocation.getCurrentPosition((pos) => {
       const { latitude: lat, longitude: lon } = pos.coords;
       const accuracy = pos.coords.accuracy;
-      
+
       setLocation(lat, lon, false);
       updateUserMarker(lat, lon);
       updateLocationDisplay(lat, lon);
@@ -251,14 +251,14 @@ export function centerOnUser(forceGPS = false) {
       console.warn('GPS Reset failed:', err);
       const reason = err.code === 1 ? 'Permission Denied' : 'Signal Timeout';
       addLogEntry('system', `GPS Reset Failed (${reason}).`);
-      
+
       // If we failed but have at least a last known position, show it
       if (state.lastGoodLat) {
         updateLocationDisplay(state.lastGoodLat, state.lastGoodLon, 'last known');
       }
-    }, { 
-      enableHighAccuracy: true, 
-      timeout: 10000, 
+    }, {
+      enableHighAccuracy: true,
+      timeout: 10000,
       maximumAge: 30000 // Allow 30s old data for speed
     });
   }
@@ -417,10 +417,10 @@ export function getBailoutLink(stormDir) {
 
 export function setLayerVisibility(layer, isVisible) {
   uiState.layers[layer] = isVisible;
-  
+
   const btn = document.querySelector(`.layer-toggle[data-layer="${layer}"]`);
   if (btn) btn.classList.toggle('active', isVisible);
-  
+
   saveUIState();
 
   if (layer === 'spc') isVisible ? map.addLayer(spcLayer) : map.removeLayer(spcLayer);
@@ -448,7 +448,7 @@ function setupLayerToggles() {
     const layer = btn.dataset.layer;
     const layerVisibility = uiState.layers || { radar: false, spc: true, track: true, alerts: true, counties: true };
     btn.classList.toggle('active', layerVisibility[layer]);
-    
+
     btn.addEventListener('click', () => {
       if (btn.hasAttribute('disabled')) return;
       const current = uiState.layers?.[layer] ?? false;
@@ -463,7 +463,7 @@ export function clearRadarOverlay() {
 
 export async function addRadarOverlay() {
   radarLayer.clearLayers();
-  
+
   let rs;
   if (state.radarMode === 'single' && state.radarSite) {
     let p = state.radarProduct;
@@ -480,9 +480,9 @@ export async function addRadarOverlay() {
 
   if (!rs) return;
 
-  const attribution = rs.url.includes('rainviewer') ? 'RainViewer' : 
-                      rs.url.includes('nowcoast') ? 'NOAA nowCOAST' : 
-                      'NEXRAD via IEM';
+  const attribution = rs.url.includes('rainviewer') ? 'RainViewer' :
+    rs.url.includes('nowcoast') ? 'NOAA nowCOAST' :
+      'NEXRAD via IEM';
 
   let radarTiles;
   if (rs.type === 'wms') {
@@ -501,7 +501,7 @@ export async function addRadarOverlay() {
       pane: 'radarPane'
     });
   }
-  
+
   radarTiles.addTo(radarLayer);
 
   // Diagnostic: Log provider-side outages (like the current KCLE 503s)
@@ -527,9 +527,9 @@ export async function addRadarOverlay() {
 function updateRadarLegend(prod) {
   const legend = document.getElementById('radar-legend');
   const config = RADAR_LEGENDS[prod] || RADAR_LEGENDS['N0Q'];
-  
+
   if (!legend) return;
-  
+
   legend.innerHTML = `
     <div class="radar-legend-title">${config.title}</div>
     <div class="radar-legend-bar">
@@ -595,7 +595,7 @@ function setupRadarControls() {
           state.radarProduct = 'N0Q';
           const btns = document.querySelectorAll('#radar-product-btns .prod-btn');
           btns.forEach(b => {
-             b.classList.toggle('active', b.dataset.prod === 'N0Q');
+            b.classList.toggle('active', b.dataset.prod === 'N0Q');
           });
         }
       }
@@ -700,7 +700,7 @@ export function updateBasemap(id) {
     }).addTo(map);
     applyLabelsFilter(state.basemapLabelsBrightness);
   }
-  
+
   applyBasemapFilter(state.basemapContrast);
 }
 
@@ -793,13 +793,13 @@ export function toggleLocationPicker(active) {
   if (active) isPickingStormCenter = false; // mutually exclusive
   const btn = document.getElementById('set-pos-btn');
   const mapContainer = document.getElementById('map');
-  
+
   if (btn) btn.classList.toggle('active', active);
   if (mapContainer) {
     mapContainer.classList.toggle('cursor-crosshair', active);
     mapContainer.classList.toggle('picking-active', active);
   }
-  
+
   if (active) {
     addLogEntry('system', 'Location picker active: Overlay popups disabled. Click map to set position.');
   }
@@ -810,7 +810,7 @@ export function toggleStormPicker(active) {
   if (active) isPickingLocation = false; // mutually exclusive
   const btn = document.getElementById('storm-pick-btn');
   const mapContainer = document.getElementById('map');
-  
+
   if (btn) btn.classList.toggle('active', active);
   if (mapContainer) {
     mapContainer.classList.toggle('cursor-crosshair', active);

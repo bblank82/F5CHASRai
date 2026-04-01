@@ -33,7 +33,8 @@
       <div class="header-controls">
         <button id="center-location-btn" class="icon-btn" title="Zoom Map to Current Position">🎯</button>
         <button id="reset-gps-btn" class="icon-btn" title="Reset to Live GPS">🛰️</button>
-        <button id="set-pos-btn" class="icon-btn-text" title="Click map to set your chase position">📍 SET POSITION</button>
+        <button id="set-pos-btn" class="icon-btn-text" title="Click map to set your chase position">📍 SET
+          POSITION</button>
         <button id="bailout-btn" class="icon-btn-danger" title="Bail out route">🚨 BAIL OUT</button>
       </div>
     </div>
@@ -85,9 +86,9 @@
             <option value="rainviewer">RainViewer (Smooth)</option>
             <option value="nowcoast">NowCOAST (MRMS)</option>
           </select>
-            <div id="radar-product-btns">
-              <button class="prod-btn active" data-prod="N0B" title="Super-Resolution Reflectivity">REFL</button>
-              <button class="prod-btn" data-prod="NCR" title="Composite Reflectivity (Max Column)">CREF</button>
+          <div id="radar-product-btns">
+            <button class="prod-btn active" data-prod="N0B" title="Super-Resolution Reflectivity">REFL</button>
+            <button class="prod-btn" data-prod="NCR" title="Composite Reflectivity (Max Column)">CREF</button>
             <button class="prod-btn" data-prod="N0U" title="Base Velocity">VEL</button>
             <button class="prod-btn" data-prod="N0S" title="Storm Relative Velocity">SRV</button>
             <button class="prod-btn" data-prod="NET" title="Echo Tops">TOPS</button>
@@ -143,9 +144,9 @@
     <!-- ===== RIGHT COLUMN ===== -->
     <aside id="right-panel">
 
-      <!-- Accordion Item: Instability -->
-      <div class="accordion-item" id="acc-instability">
-        <div class="accordion-header" id="acc-header-instability">
+      <!-- Accordion Item: Conditions -->
+      <div class="accordion-item" id="acc-conditions">
+        <div class="accordion-header" id="acc-header-conditions">
           <span class="panel-icon">📊</span>
           <span class="panel-title">CONDITIONS</span>
         </div>
@@ -169,7 +170,8 @@
               <span class="metadata-label">PRODUCT</span>
               <div style="display:flex; align-items:center; gap:6px;">
                 <span class="metadata-value" id="radar-meta-product">—</span>
-                <span id="radar-hd-badge" class="badge-chip badge-success hidden" style="font-size:9px; padding: 2px 4px; border-radius: 4px; font-weight: 800;">HD</span>
+                <span id="radar-hd-badge" class="badge-chip badge-success hidden"
+                  style="font-size:9px; padding: 2px 4px; border-radius: 4px; font-weight: 800;">HD</span>
               </div>
             </div>
             <div class="metadata-item">
@@ -194,7 +196,7 @@
             </div>
           </div>
         </div>
-        </div>
+      </div>
       </div>
 
       <!-- Accordion Item: Alerts -->
@@ -205,9 +207,14 @@
           <span class="panel-badge" id="alerts-count-badge">0</span>
         </div>
         <div class="accordion-content">
-          <div class="panel-actions" style="margin-bottom: 10px; padding: 0 4px; justify-content: flex-end; display: flex; align-items: center; gap: 8px;">
-            <button class="icon-btn" id="filter-alerts-btn" title="Filter Alerts" style="width:24px; height:24px; padding:2px;">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+          <div class="panel-actions"
+            style="margin-bottom: 10px; padding: 0 4px; justify-content: flex-end; display: flex; align-items: center; gap: 8px;">
+            <button class="icon-btn" id="filter-alerts-btn" title="Filter Alerts"
+              style="width:24px; height:24px; padding:2px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+              </svg>
             </button>
             <button class="refresh-btn" id="refresh-alerts" title="Refresh">↻</button>
           </div>
@@ -294,14 +301,13 @@
         <button class="quick-prompt-btn" data-prompt="Where should I position for optimal storm intercept right now?">🎯
           Intercept Position</button>
         <button class="quick-prompt-btn"
-          data-prompt="Analyze the current instability data and tell me chase viability.">📊 Chase Viability</button>
+          data-prompt="Analyze the current conditions data and tell me chase viability.">📊 Chase Viability</button>
         <button class="quick-prompt-btn"
           data-prompt="What are my escape route options and key safety considerations?">🚗 Escape Routes</button>
       </div>
       <div id="chat-input-row">
-        <textarea id="chat-input"
-          placeholder="Ask JayAI... (e.g. 'Is this a good day to chase near KAKEland?')" rows="1"
-          aria-label="Chat input"></textarea>
+        <textarea id="chat-input" placeholder="Ask JayAI... (e.g. 'Is this a good day to chase near KAKEland?')"
+          rows="1" aria-label="Chat input"></textarea>
         <button id="chat-send-btn" aria-label="Send message">Send ➤</button>
       </div>
     </div>

@@ -104,7 +104,7 @@ function initRefreshButton() {
 
 function initAccordion() {
   const items = document.querySelectorAll('.accordion-item');
-  
+
   items.forEach(item => {
     if (item.id === uiState.accordion) {
       item.classList.add('expanded');
@@ -118,10 +118,10 @@ function initAccordion() {
       if (e.target.closest('button')) return;
 
       const isExpanded = item.classList.contains('expanded');
-      
+
       // Close all
       items.forEach(i => i.classList.remove('expanded'));
-      
+
       // If it wasn't expanded, expand it
       if (!isExpanded) {
         item.classList.add('expanded');
@@ -135,16 +135,16 @@ function initAccordion() {
   });
 }
 
-function waitForLocationThenFetchInstability() {
+function waitForLocationThenFetchConditions() {
   if (state.userLat && state.userLon) {
-    fetchInstability(state.userLat, state.userLon);
+    fetchConditions(state.userLat, state.userLon);
     fetchNearbyRoads(state.userLat, state.userLon);
     return;
   }
   // Poll until GPS locks or user sets manual location
   const interval = setInterval(() => {
     if (state.userLat && state.userLon) {
-      fetchInstability(state.userLat, state.userLon);
+      fetchConditions(state.userLat, state.userLon);
       fetchNearbyRoads(state.userLat, state.userLon);
       clearInterval(interval);
     }
@@ -153,7 +153,7 @@ function waitForLocationThenFetchInstability() {
   // Fallback: use central Oklahoma after 8s if no GPS
   setTimeout(() => {
     if (!state.userLat) {
-      fetchInstability(35.46, -97.52); // OKC area
+      fetchConditions(35.46, -97.52); // OKC area
       fetchNearbyRoads(35.46, -97.52);
     }
     clearInterval(interval);
@@ -228,7 +228,7 @@ function renderInterceptSuggestions(suggestions, stormDir) {
 }
 
 function getDirLabel(deg) {
-  const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  const dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
   return dirs[Math.round(deg / 22.5) % 16];
 }
 
@@ -258,10 +258,10 @@ function initResetGpsButton() {
       // Clear manual override
       uiState.position = { userLat: null, userLon: null };
       saveUIState();
-      
+
       addLogEntry('system', 'Location reset: Re-acquiring browser GPS...');
       centerOnUser(true); // Forces fresh GPS read and center
-      
+
       // Refresh context-sensitive data after a short delay (enough for lock)
       setTimeout(() => {
         if (state.userLat) {

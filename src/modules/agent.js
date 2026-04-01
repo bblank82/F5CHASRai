@@ -1,6 +1,6 @@
 // modules/agent.js — Gemini AI Meteorology Chat Agent
 import { state, addLogEntry, uiState, saveUIState } from './state.js';
-import { getInstabilityContext } from './instability.js';
+import { getConditionsContext } from './conditions.js';
 import { getThreatContext } from './threat.js';
 import { getRoadContext } from './roads.js';
 
@@ -29,7 +29,7 @@ export function initAgent() {
 
   // Welcome message
   appendMessage('agent', `Hello, Prater here. I'm connected to your live weather data and ready to assist. Ask me about chase strategy, storm structure, intercept positioning, escape routes, or anything else.\n\n${getWelcomeStatus()}`);
-  
+
   updateModelBadge();
 
   sendBtn.addEventListener('click', sendMessage);
@@ -163,7 +163,7 @@ function buildContext() {
   return `[LIVE CONTEXT — ${new Date().toLocaleTimeString()}]
 ${loc}
 ${getThreatContext()}
-${getInstabilityContext()}
+${getConditionsContext()}
 ${getRoadContext()}
 ${track}
 Active alerts: ${state.activeAlerts.length} total (${state.activeAlerts.filter(f => /tornado warning/i.test(f.properties.event)).length} tornado warnings)`;
@@ -174,7 +174,7 @@ function appendMessage(role, text) {
   const div = document.createElement('div');
   div.className = `chat-msg msg-${role}`;
 
-  const avatarHtml = role === 'agent' 
+  const avatarHtml = role === 'agent'
     ? `<img src="/jay.png" class="chat-avatar-icon-small" alt="THE BOSS" />`
     : '👤';
   const label = role === 'agent' ? 'THE BOSS' : 'You';

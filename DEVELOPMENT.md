@@ -35,7 +35,7 @@ This document serves as a persistent reference for the architectural decisions, 
 
 ### Specialized Features
 *   **`src/modules/time_machine.js`**: Controls the transition between real-time data and historical archive playback.
-*   **`src/modules/instability.js`**: Real-time atmospheric sounding analysis and visualization.
+*   **`src/modules/conditions.js`**: Real-time atmospheric sounding analysis and visualization.
 *   **`src/modules/storm_track.js`**: AI-driven intercept planner that calculates storm movement and suggests interception points.
 *   **`src/modules/chat.js`**: Integration with Gemini (e.g., Gemini 2.0 Flash) for real-time meteorological assistance.
 
@@ -60,7 +60,7 @@ npm run dev
 - **Branding Update**: Transitioned from "Storm Chaser" to "F5CHASRai" with dedicated styling.
 - **Map Settings Evolution**: Implemented a multi-basemap engine (Dark Matter, Voyager Roads, Positron) with independent label brightness and contrast controls.
 - **Alert Management**: Added a persistent filtering system for threat types and a high-contrast modal for technical alert text.
-- **Conditions Overhaul**: Transformed the instability panel into a full-width conditions dashboard with horizontal parameter categorization for improved data density.
+- **Conditions Overhaul**: Transformed the conditions panel into a full-width conditions dashboard with horizontal parameter categorization for improved data density.
 - **Radar Precision**: Relocated scan tilt controls to the primary map toolbar and implemented real-time intervalized timestamps for live radar tiles.
 
 ---
