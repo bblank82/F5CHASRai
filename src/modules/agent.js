@@ -175,7 +175,7 @@ function appendMessage(role, text) {
   div.className = `chat-msg msg-${role}`;
 
   const avatarHtml = role === 'agent' 
-    ? `<img src="jay.png" class="chat-avatar-icon-small" alt="THE BOSS" />`
+    ? `<img src="/jay.png" class="chat-avatar-icon-small" alt="THE BOSS" />`
     : '👤';
   const label = role === 'agent' ? 'THE BOSS' : 'You';
 
