@@ -25,6 +25,10 @@ export function initMap() {
     saveUIState();
   });
 
+  map.on('zoomend', () => {
+    renderUserPoints();
+  });
+
   // Custom Pane for Labels (On separate pane to stay above radar/overlays)
   map.createPane('labelsPane');
   map.getPane('labelsPane').style.zIndex = 500;
@@ -468,6 +472,16 @@ export function renderUserPoints() {
 
   if (!uiState.layers.points) return;
 
+  const currentZoom = map.getZoom();
+  const mapDiv = document.getElementById('map');
+  if (mapDiv) {
+    mapDiv.classList.toggle('map-zoom-out', currentZoom < 9);
+    mapDiv.classList.toggle('map-zoom-micro', currentZoom < 6);
+  }
+
+  // Prevent macro-scale clutter (entire US view)
+  if (currentZoom < 4) return;
+
   uiState.userPointGroups.forEach(group => {
     // Only render if group is visible and has data
     if (!group.visible || !group.raw) return;
@@ -482,14 +496,13 @@ export function renderUserPoints() {
 
         if (!isNaN(lat) && !isNaN(lon)) {
           const icon = L.divIcon({
-            className: 'custom-pin-marker',
+            className: 'custom-dot-marker',
             html: `
-              <div class="pin-head" style="background: ${group.color || '#f59e0b'}"></div>
-              <div class="pin-stem"></div>
-              ${label ? `<div class="custom-pin-label">${label}</div>` : ''}
+              <div class="marker-dot-inner" style="background: ${group.color || '#f59e0b'}"></div>
+              ${label ? `<div class="custom-dot-label">${label}</div>` : ''}
             `,
-            iconSize: [20, 30],
-            iconAnchor: [10, 30]
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
           });
 
           L.marker([lat, lon], { icon })
