@@ -207,64 +207,49 @@ async function updateLocationDisplay(lat, lon, suffix = '') {
 }
 
 export function centerOnUser(forceGPS = false) {
+  const locText = document.getElementById('location-text');
+
+  // If we already have a position in state (likely from watchPosition), 
+  // jump to it immediately for instant responsiveness.
+  if (state.userLat && state.userLon) {
+    map.setView([state.userLat, state.userLon], map.getZoom(), { animate: true });
+    // If not forcing a fresh acquisition, we're done.
+    if (!forceGPS) return;
+  }
+
   if (forceGPS) {
     if (!navigator.geolocation) {
       addLogEntry('system', 'Geolocation is not supported by this browser.');
       return;
     }
 
-    const locText = document.getElementById('location-text');
     if (locText) locText.textContent = 'Locating (GPS)...';
     
-    // Stage 1: High Accuracy (GPS)
-    const tryGPS = (isFallback = false) => {
-      const modeName = isFallback ? 'Network/Cell' : 'High-Precision GPS';
-      if (locText) locText.textContent = `Locating (${modeName})...`;
+    // Request a fresh update, but allow a reasonable cache (30s) for instant return
+    // if the background watchPosition just got a hit.
+    navigator.geolocation.getCurrentPosition((pos) => {
+      const { latitude: lat, longitude: lon } = pos.coords;
+      const accuracy = pos.coords.accuracy;
       
-      navigator.geolocation.getCurrentPosition((pos) => {
-        const { latitude: lat, longitude: lon } = pos.coords;
-        const accuracy = pos.coords.accuracy;
-        const method = isFallback ? 'Network Fallback' : 'GPS Lock';
-        
-        setLocation(lat, lon, false);
-        updateUserMarker(lat, lon);
-        updateLocationDisplay(lat, lon);
-        map.setView([lat, lon], Math.max(map.getZoom(), 8), { animate: true });
-        addLogEntry('system', `Location Re-established via ${method} (±${Math.round(accuracy)}m).`);
-      }, (err) => {
-        console.warn(`${modeName} failed:`, err);
-        
-        if (!isFallback && err.code === err.TIMEOUT) {
-          addLogEntry('system', 'GPS High-Precision Timeout: Attempting Network Fallback...');
-          tryGPS(true); // Attempt low accuracy
-        } else {
-          // Total failure or denied
-          const reason = err.code === 1 ? 'Permission Denied' : 'Signal Lost';
-          addLogEntry('system', `GPS Reset Failed (${reason}): Reverting to last known.`);
-          
-          if (state.lastGoodLat) {
-            const lat = state.lastGoodLat;
-            const lon = state.lastGoodLon;
-            setLocation(lat, lon, false);
-            updateUserMarker(lat, lon);
-            updateLocationDisplay(lat, lon, 'last known');
-            map.setView([lat, lon], Math.max(map.getZoom(), 8), { animate: true });
-          } else if (uiState.position.userLat) {
-             updateLocationDisplay(uiState.position.userLat, uiState.position.userLon, 'manual');
-          } else {
-            if (locText) locText.textContent = `Error: ${reason}`;
-          }
-        }
-      }, { 
-        enableHighAccuracy: !isFallback, 
-        timeout: isFallback ? 10000 : 20000, 
-        maximumAge: 5000 
-      });
-    };
-
-    tryGPS(false);
-  } else if (state.userLat && state.userLon) {
-    map.setView([state.userLat, state.userLon], map.getZoom(), { animate: true });
+      setLocation(lat, lon, false);
+      updateUserMarker(lat, lon);
+      updateLocationDisplay(lat, lon);
+      map.setView([lat, lon], Math.max(map.getZoom(), 8), { animate: true });
+      addLogEntry('system', `Location Re-established (±${Math.round(accuracy)}m).`);
+    }, (err) => {
+      console.warn('GPS Reset failed:', err);
+      const reason = err.code === 1 ? 'Permission Denied' : 'Signal Timeout';
+      addLogEntry('system', `GPS Reset Failed (${reason}).`);
+      
+      // If we failed but have at least a last known position, show it
+      if (state.lastGoodLat) {
+        updateLocationDisplay(state.lastGoodLat, state.lastGoodLon, 'last known');
+      }
+    }, { 
+      enableHighAccuracy: true, 
+      timeout: 10000, 
+      maximumAge: 30000 // Allow 30s old data for speed
+    });
   }
 }
 

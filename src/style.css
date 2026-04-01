@@ -530,10 +530,13 @@ body.archive-mode .status-badge::before { content: 'HISTORICAL DATA - '; }
 .leaflet-control-zoom a { background: var(--bg-panel) !important; color: var(--text-primary) !important; border-color: var(--border) !important; }
 .leaflet-control-attribution { background: rgba(8,9,12,0.8) !important; color: var(--text-muted) !important; font-size: 9px !important; }
 
-/* Pointer Events: Ignore overlays during position picking (ensures map click registers) */
+/* Pointer Events: Ignore ALL overlays and panes during position picking (ensures map click registers) */
+#map.picking-active .leaflet-pane,
 #map.picking-active .leaflet-overlay-pane,
 #map.picking-active .leaflet-marker-pane,
-#map.picking-active .leaflet-popup-pane {
+#map.picking-active .leaflet-popup-pane,
+#map.picking-active .leaflet-tile-pane,
+#map.picking-active svg {
   pointer-events: none !important;
 }
 
@@ -1116,6 +1119,15 @@ body.archive-mode .accordion-item .accordion-header {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  cursor: help;
+  padding: 4px;
+  margin: -4px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.condition-item:hover {
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .condition-label {

@@ -154,34 +154,34 @@ function renderInstabilityPanel(r, lat, lon) {
       title: 'Thermodynamics',
       icon: '🔥',
       items: [
-        { label: 'SBCAPE', value: r.cape, unit: ' J/kg', color: getValColor(r.cape, THRESHOLDS.cape), status: getCapeStatus(r.cape) },
-        { label: 'SBCIN', value: r.cin, unit: ' J/kg', color: getCinColor(r.cin), status: getCinStatus(r.cin) },
-        { label: 'Temperature', value: r.temperature, unit: '°F', color: 'var(--text-primary)', status: r.temperature > 80 ? 'Warm' : 'Mild' },
-        { label: 'Lifted Index', value: r.li, unit: '', color: getLiColor(r.li), status: getLiStatus(r.li) },
+        { label: 'SBCAPE', value: r.cape, unit: ' J/kg', color: getValColor(r.cape, THRESHOLDS.cape), status: getCapeStatus(r.cape), tooltip: 'Surface-Based Convective Available Potential Energy. Measures buoyancy/instability; higher values mean stronger updrafts.' },
+        { label: 'SBCIN', value: r.cin, unit: ' J/kg', color: getCinColor(r.cin), status: getCinStatus(r.cin), tooltip: 'Convective Inhibition. The "cap" that prevents air from rising. High CIN can prevent storm development even in high CAPE.' },
+        { label: 'Temperature', value: r.temperature, unit: '°F', color: 'var(--text-primary)', status: r.temperature > 80 ? 'Warm' : 'Mild', tooltip: 'Current surface temperature. High surface temps contribute to steeper lapse rates and instability.' },
+        { label: 'Lifted Index', value: r.li, unit: '', color: getLiColor(r.li), status: getLiStatus(r.li), tooltip: 'Measure of stability. Values below 0 indicate potential for thunderstorms; -6 or lower is extreme.' },
       ]
     },
     {
       title: 'Kinematics',
       icon: '🌪️',
       items: [
-        { label: 'Bulk Shear', value: r.shear_06, unit: ' kt', color: getValColor(r.shear_06, THRESHOLDS.shear_06), status: getShearStatus(r.shear_06) },
-        { label: '0–1km Shear', value: r.shear_01, unit: ' kt', color: getValColor(r.shear_01, THRESHOLDS.shear_01), status: r.shear_01 >= 20 ? 'High' : 'Low' },
+        { label: 'Bulk Shear', value: r.shear_06, unit: ' kt', color: getValColor(r.shear_06, THRESHOLDS.shear_06), status: getShearStatus(r.shear_06), tooltip: '0–6km Bulk Shear. Measures change in wind with height. >35kt is favorable for supercell organization.' },
+        { label: '0–1km Shear', value: r.shear_01, unit: ' kt', color: getValColor(r.shear_01, THRESHOLDS.shear_01), status: r.shear_01 >= 20 ? 'High' : 'Low', tooltip: 'Low-level wind shear. Critical for tornado potential; higher values increase the likelihood of low-level rotation.' },
       ]
     },
     {
       title: 'Moisture',
       icon: '💧',
       items: [
-        { label: 'Dewpoint', value: r.dewpoint, unit: '°F', color: getValColor(r.dewpoint, THRESHOLDS.dewpoint), status: r.dewpoint >= 65 ? 'Rich' : 'Marginal' },
-        { label: 'Rel. Humidity', value: r.rh, unit: '%', color: 'var(--text-secondary)', status: r.rh >= 70 ? 'High' : 'Low' },
+        { label: 'Dewpoint', value: r.dewpoint, unit: '°F', color: getValColor(r.dewpoint, THRESHOLDS.dewpoint), status: r.dewpoint >= 65 ? 'Rich' : 'Marginal', tooltip: 'Surface dewpoint temperature. Measures absolute moisture; 60°F+ is generally needed for severe convection.' },
+        { label: 'Rel. Humidity', value: r.rh, unit: '%', color: 'var(--text-secondary)', status: r.rh >= 70 ? 'High' : 'Low', tooltip: 'Relative Humidity at the surface. High RH prevents evaporative cooling and helps maintain updraft strength.' },
       ]
     },
     {
       title: 'Lift / Forcing',
       icon: '🚀',
       items: [
-        { label: 'Est. LCL', value: r.lcl, unit: ' m', color: getValColorInv(r.lcl, THRESHOLDS.lcl), status: r.lcl <= 1000 ? 'Favorable' : 'High' },
-        { label: 'VPD', value: r.vpd, unit: ' kPa', color: 'var(--text-secondary)', status: r.vpd < 1.0 ? 'Moist' : 'Dry' },
+        { label: 'Est. LCL', value: r.lcl, unit: ' m', color: getValColorInv(r.lcl, THRESHOLDS.lcl), status: r.lcl <= 1000 ? 'Favorable' : 'High', tooltip: 'Lifting Condensation Level. Estimated height of cloud bases. Low LCLs (<1000m) are favorable for tornado production.' },
+        { label: 'VPD', value: r.vpd, unit: ' kPa', color: 'var(--text-secondary)', status: r.vpd < 1.0 ? 'Moist' : 'Dry', tooltip: 'Vapor Pressure Deficit. Measures how "thirsty" the air is. High VPD can lead to cold, outflow-dominant storm behavior.' },
       ]
     }
   ];
@@ -193,7 +193,7 @@ function renderInstabilityPanel(r, lat, lon) {
           <div class="category-title">${cat.icon} ${cat.title}</div>
           <div class="condition-items-container">
             ${cat.items.map(item => `
-              <div class="condition-item">
+              <div class="condition-item" title="${item.tooltip}">
                 <div class="condition-label">${item.label}</div>
                 <div class="condition-value-row">
                   <div class="condition-value" style="color:${item.color}">${fmt(item.value, '', item.label === 'Lifted Index' || item.label === 'VPD' ? 1 : 0)}</div>

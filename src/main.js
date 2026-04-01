@@ -247,7 +247,7 @@ function initBailoutButton() {
 
 // ===== CENTER ON USER =====
 function initCenterButton() {
-  document.getElementById('center-location-btn').addEventListener('click', centerOnUser);
+  document.getElementById('center-location-btn').addEventListener('click', () => centerOnUser());
 }
 
 function initResetGpsButton() {
